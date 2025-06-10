@@ -1,0 +1,12 @@
+endpoints:
+  autenticacion: "https://cfdidescargamasivasolicitud.clouda.sat.gob.mx/Autenticacion/Autenticacion.svc"
+  autenticacion_action: "http://DescargaMasivaTerceros.gob.mx/IAutenticacion/Autentica"
+
+  solicitud: "https://cfdidescargamasivasolicitud.clouda.sat.gob.mx/SolicitaDescargaService.svc"
+  solicitud_action: "http://DescargaMasivaTerceros.sat.gob.mx/ISolicitaDescargaService/SolicitaDescarga"
+
+  verificacion: "https://cfdidescargamasivasolicitud.clouda.sat.gob.mx/VerificaSolicitudDescargaService.svc"
+  verificacion_action: "http://DescargaMasivaTerceros.sat.gob.mx/IVerificaSolicitudDescargaService/VerificaSolicitudDescarga"
+
+  descarga: "https://cfdidescargamasiva.clouda.sat.gob.mx/DescargaMasivaService.svc"
+  descarga_action: "http://DescargaMasivaTerceros.sat.gob.mx/IDescargaMasivaTercerosService/Descargar"

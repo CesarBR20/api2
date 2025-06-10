@@ -1,5 +1,6 @@
 import boto3
 import os
+from botocore.exceptions import NoCredentialsError, ClientError
 
 def upload_to_s3(file_path: str, bucket_name: str, object_name: str):
     s3_client = boto3.client(
@@ -9,3 +10,22 @@ def upload_to_s3(file_path: str, bucket_name: str, object_name: str):
         region_name=os.getenv('AWS_REGION')
     )
     s3_client.upload_file(file_path, bucket_name, object_name)
+
+
+def download_from_s3(bucket_name: str, s3_key: str, local_path: str):
+
+    s3_client = boto3.client('s3')
+    try:
+        # Asegurarse de que el directorio local existe
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        # Reemplazar barras invertidas por barras diagonales en la clave
+        s3_key = s3_key.replace("\\", "/")
+        print(f"Descargando {s3_key} desde el bucket {bucket_name}")
+        s3_client.download_file(bucket_name, s3_key, local_path)
+    except NoCredentialsError:
+        raise Exception("Credenciales de AWS no encontradas.")
+    except ClientError as e:
+        if e.response['Error']['Code'] == '404':
+            raise Exception(f"El objeto {s3_key} no existe en el bucket {bucket_name}.")
+        else:
+            raise Exception(f"Error al descargar el archivo desde S3: {e}")

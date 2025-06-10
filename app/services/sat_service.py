@@ -3,6 +3,7 @@ from app.utils.pem_converter import convert_to_pem
 from app.services.s3_service import upload_to_s3
 import subprocess
 from datetime import datetime
+from app.config_loader import load_config
 
 async def process_client_files(cer_file, key_file, password, rfc):
     temp_dir = f"/tmp/{rfc}"
@@ -39,6 +40,11 @@ async def process_client_files(cer_file, key_file, password, rfc):
 
 def authenticate_with_sat(cert_pem_path: str, key_pem_path: str, password: str, output_dir: str):
     token_path = os.path.join(output_dir, "token.txt")
+    
+    config = load_config()
+    endpoints = config.get("endpoints", {})
+    auth_url = endpoints.get("autenticacion")
+    auth_action = endpoints.get("autenticacion_action")
 
     # Comando para autenticarse con el SAT
     subprocess.run([
