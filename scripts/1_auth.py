@@ -9,6 +9,8 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from app.utils.signer import build_soap_envelope, sign_envelope
+
 def load_config():
     with open("config.yml", encoding="utf-8") as f:
         raw = f.read()

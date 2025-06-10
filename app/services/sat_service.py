@@ -38,24 +38,30 @@ async def process_client_files(cer_file, key_file, password, rfc):
 
     return s3_paths
 
-def authenticate_with_sat(cert_pem_path: str, key_pem_path: str, password: str, output_dir: str):
-    token_path = os.path.join(output_dir, "token.txt")
-    
+def authenticate_with_sat(cert_pem_path, key_pem_path, password, output_path, rfc):
     config = load_config()
-    endpoints = config.get("endpoints", {})
-    auth_url = endpoints.get("autenticacion")
-    auth_action = endpoints.get("autenticacion_action")
+    auth_endpoint = config['endpoints']['autenticacion']
+    auth_action = config['endpoints']['autenticacion_action']
 
-    # Comando para autenticarse con el SAT
-    subprocess.run([
-        "python", "scripts/1_auth.py",
-        "--cert", cert_pem_path,
-        "--key", key_pem_path,
-        "--pass", password,
-        "--output", token_path
-    ], check=True)
+    try:
+        subprocess.run([
+            "python", "scripts/1_auth.py",
+            "--cert", cert_pem_path,
+            "--key", key_pem_path,
+            "--pass", password,
+            "--output", output_path
+        ], check=True)
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"Error al ejecutar el script de autenticación: {e}")
 
-    return token_path
+    bucket_name = os.getenv('S3_BUCKET_NAME')
+    if not bucket_name:
+        raise Exception("El nombre del bucket S3 no está configurado en las variables de entorno.")
+
+    s3_token_path = f"clientes/{rfc}/tokens/token.txt"
+    upload_to_s3(output_path, bucket_name, s3_token_path)
+    
+    return s3_token_path
 
 def create_sat_requests(token_path: str, rfc: str, start_year: int, output_dir: str):
     # Leer el token desde el archivo

@@ -72,6 +72,7 @@ async def auth_sat(
     cert_local_path = os.path.join(temp_dir, "cert.pem")
     key_local_path = os.path.join(temp_dir, "fiel.pem")
     password_local_path = os.path.join(temp_dir, "password.txt")
+    token_local_path = os.path.join(temp_dir, "token.txt")
 
     # Descargar archivos desde S3
     try:
@@ -90,18 +91,12 @@ async def auth_sat(
 
     # Autenticarse con el SAT
     try:
-        token_path = authenticate_with_sat(cert_local_path, key_local_path, password, temp_dir)
+        token_s3_path = authenticate_with_sat(cert_local_path, key_local_path, password, token_local_path, rfc)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al autenticar con el SAT: {str(e)}")
 
-    # Subir el token a S3
-    token_s3_key = f"clientes/{rfc}/tokens/token.txt"
-    try:
-        upload_to_s3(token_path, bucket_name, token_s3_key)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al subir el token a S3: {str(e)}")
+    return {"message": "Autenticación exitosa", "token_s3_path": token_s3_path}
 
-    return {"message": "Autenticación exitosa", "token_s3_path": token_s3_key}
 
 @router.post("/solicitar-cfdi/")
 async def solicitar_cfdi(
