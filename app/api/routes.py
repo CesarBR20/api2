@@ -39,24 +39,16 @@ async def convert_and_upload_certificates(
 
     # Subir los archivos a S3
     bucket_name = os.getenv('S3_BUCKET_NAME')
-    upload_to_s3(cert_pem_path, bucket_name, f"{rfc}/cert.pem")
-    upload_to_s3(fiel_pem_path, bucket_name, f"{rfc}/fiel.pem")
+    if not bucket_name:
+        raise Exception("No se ha definido el nombre del bucket en el archivo .env")
+    upload_to_s3(cert_pem_path, bucket_name, f"clientes/{rfc}/certificados/cert.pem")
+    upload_to_s3(fiel_pem_path, bucket_name, f"clientes/{rfc}/certificados/fiel.pem")
 
     return {
         "message": "Archivos convertidos y subidos exitosamente",
         "cert_pem_s3_path": f"{rfc}/cert.pem",
         "fiel_pem_s3_path": f"{rfc}/fiel.pem"
     }
-
-@router.post("/upload-certificates/")
-async def upload_certificates(
-    cer_file: UploadFile = File(...),
-    key_file: UploadFile = File(...),
-    password: str = Form(...),
-    rfc: str = Form(...)
-):
-    result = await process_client_files(cer_file, key_file, password, rfc)
-    return {"message": "Archivos procesados exitosamente", "details": result}
 
 @router.post("/auth-sat/")
 async def auth_sat(
