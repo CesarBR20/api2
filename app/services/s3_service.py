@@ -37,3 +37,15 @@ def upload_token_to_s3(bucket_name: str, s3_key: str, content: str):
         print(f"Token subido correctamente a S3 en {s3_key}")
     except Exception as e:
         raise Exception(f"Error al subir el token a S3: {str(e)}")
+
+def read_file_from_s3(bucket_name: str, s3_key: str) -> str:
+    s3 = boto3.client("s3")
+    obj = s3.get_object(Bucket=bucket_name, Key=s3_key)
+    return obj['Body'].read().decode("utf-8")
+
+def upload_file_to_s3(bucket_name: str, s3_key: str, local_path: str):
+    s3 = boto3.client("s3")
+    with open(local_path, "rb") as f:
+        s3.put_object(Bucket=bucket_name, Key=s3_key, Body=f)
+
+

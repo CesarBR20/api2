@@ -8,6 +8,7 @@ from app.services.sat_service import convert_to_pem
 from app.utils.pem_converter import convert_to_pem
 from app.services.s3_service import upload_to_s3, download_from_s3, upload_token_to_s3
 from app.services.auth_service import get_sat_token
+from app.services.request_service import solicitar_cfdi_desde_sat
 import os
 
 router = APIRouter()
@@ -91,17 +92,16 @@ def auth_sat(rfc: str = Form(...)):
 @router.post("/solicitar-cfdi/")
 async def solicitar_cfdi(
     rfc: str = Form(...),
-    year: int = Form(...)
+    inicio: str = Form(...),
+    fin: str = Form(...),
+    tipo_solicitud: str = Form(...),
+    tipo_comp: str = Form(...)
 ):
-    temp_dir = f"/tmp/{rfc}"
-    token_path = f"{temp_dir}/token.txt"
-    output_dir = f"{temp_dir}/solicitudes"
-
-    os.makedirs(output_dir, exist_ok=True)
-
-    create_sat_requests(token_path, rfc, year, output_dir)
-
-    return {"message": "Solicitudes realizadas exitosamente"}
+    try:
+        id_solicitud = solicitar_cfdi_desde_sat(rfc, inicio, fin, tipo_solicitud, tipo_comp)
+        return {"id_solicitud": id_solicitud}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/verificar-solicitudes/")
 async def verificar_solicitudes(
