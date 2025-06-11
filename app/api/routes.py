@@ -6,7 +6,8 @@ from app.services.sat_service import verify_sat_requests
 from app.services.sat_service import download_sat_packages
 from app.services.sat_service import convert_to_pem
 from app.utils.pem_converter import convert_to_pem
-from app.services.s3_service import upload_to_s3, download_from_s3
+from app.services.s3_service import upload_to_s3, download_from_s3, upload_token_to_s3
+from app.services.auth_service import get_sat_token
 import os
 
 router = APIRouter()
@@ -53,50 +54,39 @@ async def convert_and_upload_certificates(
     }
 
 @router.post("/auth-sat/")
-async def auth_sat(
-    rfc: str = Form(...)
-):
-    temp_dir = f"/tmp/{rfc}"
-    os.makedirs(temp_dir, exist_ok=True)
-
-    bucket_name = os.getenv('S3_BUCKET_NAME')
-    if not bucket_name:
-        raise HTTPException(status_code=500, detail="No se ha definido el nombre del bucket en el archivo .env")
-
-    # Definir rutas en S3
-    cert_s3_key = f"clientes/{rfc}/certificados/cert.pem"
-    key_s3_key = f"clientes/{rfc}/certificados/fiel.pem"
-    password_s3_key = f"clientes/{rfc}/certificados/password.txt"
-
-    # Definir rutas locales
-    cert_local_path = os.path.join(temp_dir, "cert.pem")
-    key_local_path = os.path.join(temp_dir, "fiel.pem")
-    password_local_path = os.path.join(temp_dir, "password.txt")
-    token_local_path = os.path.join(temp_dir, "token.txt")
-
-    # Descargar archivos desde S3
+def auth_sat(rfc: str = Form(...)):
     try:
-        download_from_s3(bucket_name, cert_s3_key, cert_local_path)
-        download_from_s3(bucket_name, key_s3_key, key_local_path)
-        download_from_s3(bucket_name, password_s3_key, password_local_path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al descargar archivos desde S3: {str(e)}")
+        base_path = f"/tmp/{rfc}"
+        cert_path = f"{base_path}/cert.pem"
+        key_path = f"{base_path}/fiel.pem"
+        password_path = f"{base_path}/password.txt"
 
-    # Leer la contraseña
-    try:
-        with open(password_local_path, "r") as f:
+        BUCKET_NAME = "satisfacture"
+
+        # Descargar credenciales
+        download_from_s3(BUCKET_NAME, f"clientes/{rfc}/certificados/cert.pem", cert_path)
+        download_from_s3(BUCKET_NAME, f"clientes/{rfc}/certificados/fiel.pem", key_path)
+        download_from_s3(BUCKET_NAME, f"clientes/{rfc}/certificados/password.txt", password_path)
+
+        # Leer contraseña
+        with open(password_path, "r", encoding="utf-8") as f:
             password = f.read().strip()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al leer el archivo de contraseña: {str(e)}")
 
-    # Autenticarse con el SAT
-    try:
-        token_s3_path = authenticate_with_sat(cert_local_path, key_local_path, password, token_local_path, rfc)
+        # SAT endpoints
+        endpoint_url = "https://cfdidescargamasivasolicitud.clouda.sat.gob.mx/Autenticacion/Autenticacion.svc"
+        endpoint_action = "http://DescargaMasivaTerceros.gob.mx/IAutenticacion/Autentica"
+
+        # Obtener token
+        token = get_sat_token(cert_path, key_path, password, endpoint_url, endpoint_action)
+
+        # Subir token a S3
+        s3_token_key = f"clientes/{rfc}/tokens/token.txt"
+        upload_token_to_s3(BUCKET_NAME, s3_token_key, token)
+
+        return {"token": token}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al autenticar con el SAT: {str(e)}")
-
-    return {"message": "Autenticación exitosa", "token_s3_path": token_s3_path}
-
 
 @router.post("/solicitar-cfdi/")
 async def solicitar_cfdi(

@@ -29,3 +29,11 @@ def download_from_s3(bucket_name: str, s3_key: str, local_path: str):
             raise Exception(f"El objeto {s3_key} no existe en el bucket {bucket_name}.")
         else:
             raise Exception(f"Error al descargar el archivo desde S3: {e}")
+
+def upload_token_to_s3(bucket_name: str, s3_key: str, content: str):
+    s3 = boto3.client("s3")
+    try:
+        s3.put_object(Bucket=bucket_name, Key=s3_key, Body=content.encode("utf-8"))
+        print(f"Token subido correctamente a S3 en {s3_key}")
+    except Exception as e:
+        raise Exception(f"Error al subir el token a S3: {str(e)}")
