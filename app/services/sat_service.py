@@ -226,6 +226,7 @@ def download_sat_packages(rfc: str, temp_dir: str):
     password_path = os.path.join(f"/tmp/{rfc}", "password.txt")
     token_path = os.path.join(f"/tmp/{rfc}", "token.txt")
     paquetes_path = os.path.join(temp_dir, "paquetes.txt")
+    id_solicitud_path = os.path.join(temp_dir, "id_solicitud.txt")
 
     os.makedirs(temp_dir, exist_ok=True)
 
@@ -235,6 +236,7 @@ def download_sat_packages(rfc: str, temp_dir: str):
     download_from_s3(bucket, f"clientes/{rfc}/certificados/password.txt", password_path)
     download_from_s3(bucket, f"clientes/{rfc}/tokens/token.txt", token_path)
     download_from_s3(bucket, f"clientes/{rfc}/{year}/solicitudes/paquetes.txt", paquetes_path)
+    download_from_s3(bucket, f"clientes/{rfc}/{year}/solicitudes/id_solicitud.txt", id_solicitud_path)
 
     # Leer token
     with open(token_path, "r", encoding="utf-8") as f:
@@ -249,6 +251,7 @@ def download_sat_packages(rfc: str, temp_dir: str):
         return
 
     pendientes = []
+    descargados = []
 
     for paquete_id in paquetes:
         try:
@@ -310,15 +313,33 @@ def download_sat_packages(rfc: str, temp_dir: str):
                 f.write(raw_zip)
             upload_to_s3(local_zip, bucket, s3_zip_path)
 
-            # update_package_status_in_db(rfc, int(year), paquete_id, tipo)  # si activas Mongo
-
+            descargados.append(paquete_id)
             print(f"✓ Descargado y subido: {s3_zip_path}")
 
         except Exception as e:
             print(f"✗ Error al descargar {paquete_id}: {e}")
             pendientes.append(paquete_id)
-    
+
+    # Actualizar paquetes.txt (solo los que no se pudieron descargar)
     with open(paquetes_path, "w", encoding="utf-8") as f:
         for p in pendientes:
             f.write(p + "\n")
     upload_to_s3(paquetes_path, bucket, f"clientes/{rfc}/{year}/solicitudes/paquetes.txt")
+
+    # Limpiar id_solicitud.txt de los descargados
+    try:
+        with open(id_solicitud_path, "r", encoding="utf-8") as f:
+            todas = [line.strip() for line in f if line.strip()]
+
+        ids_descargados = set(p.split("_")[0].lower() for p in descargados)
+        nuevas = [s for s in todas if s.lower() not in ids_descargados]
+
+        with open(id_solicitud_path, "w", encoding="utf-8") as f:
+            for s in nuevas:
+                f.write(s + "\n")
+
+        upload_to_s3(id_solicitud_path, bucket, f"clientes/{rfc}/{year}/solicitudes/id_solicitud.txt")
+        print("✓ id_solicitud.txt actualizado, eliminadas las solicitudes descargadas")
+
+    except Exception as e:
+        print(f"(⚠) Error al limpiar id_solicitud.txt: {e}")
