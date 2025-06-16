@@ -4,6 +4,14 @@ from app.services.s3_service import upload_to_s3
 import subprocess
 from datetime import datetime
 from app.config_loader import load_config
+from app.services.s3_service import read_file_from_s3, upload_to_s3
+import base64
+from lxml import etree
+import xmlsec
+import requests
+from urllib.parse import unquote
+from app.services.s3_service import download_from_s3, read_file_from_s3, upload_to_s3
+#from app.services.mongo_service import update_package_status_in_db  
 
 async def process_client_files(cer_file, key_file, password, rfc):
     temp_dir = f"/tmp/{rfc}"
@@ -126,6 +134,8 @@ def verify_sat_requests(token_path, rfc, temp_dir):
 
     resultados = []
 
+    paquetes_totales = set()
+    
     for id_solicitud in solicitudes:
         # Generar XML
         envelope = etree.Element("{http://schemas.xmlsoap.org/soap/envelope/}Envelope", nsmap={
@@ -176,14 +186,7 @@ def verify_sat_requests(token_path, rfc, temp_dir):
             ids_paquetes = [p for p in nodo_paquetes.text.strip().split("|") if p]
             
         if estado == "3":
-            paquetes_path = os.path.join(temp_dir, "paquetes.txt")
-            with open(paquetes_path, "w", encoding ="utf-8") as f:
-                for paquete in ids_paquetes:
-                    f.write(paquete + "\n")
-            
-            s3_paquetes_path = f"clientes/{rfc}/{year}/soliciudes/paquetes.txt"
-            from app.services.s3_service import upload_to_s3
-            upload_to_s3(paquetes_path, bucket,s3_paquetes_path)
+            paquetes_totales.update(ids_paquetes)
 
         resultados.append({
             "id_solicitud": id_solicitud,
@@ -193,24 +196,129 @@ def verify_sat_requests(token_path, rfc, temp_dir):
             "numero_cfdis": numero_cfdis,
             "paquetes": ids_paquetes
         })
+        
+    if paquetes_totales:
+        paquetes_path = os.path.join(temp_dir, "paquetes.txt")
+        s3_paquetes_path = f"clientes/{rfc}/{year}/solicitudes/paquetes.txt"
+
+        try:
+            contenido_actual = read_file_from_s3(bucket, s3_paquetes_path).decode("utf-8").splitlines()
+        except Exception:
+            contenido_actual = []
+
+        paquetes_finales = set(contenido_actual).union(paquetes_totales)
+
+        with open(paquetes_path, "w", encoding="utf-8") as f:
+            for paquete in paquetes_finales:
+                f.write(paquete + "\n")
+
+        upload_to_s3(paquetes_path, bucket, s3_paquetes_path)
 
     return resultados
 
+def download_sat_packages(rfc: str, temp_dir: str):
+    year = os.path.basename(os.path.dirname(temp_dir))
+    bucket = "satisfacture"
 
-        
-def download_sat_packages(token_path: str, rfc: str, output_dir: str):
-    with open(token_path, "r") as f:
+    # Preparar paths locales
+    cert_path = os.path.join(f"/tmp/{rfc}", "cert.pem")
+    key_path = os.path.join(f"/tmp/{rfc}", "fiel.pem")
+    password_path = os.path.join(f"/tmp/{rfc}", "password.txt")
+    token_path = os.path.join(f"/tmp/{rfc}", "token.txt")
+    paquetes_path = os.path.join(temp_dir, "paquetes.txt")
+
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Descargar archivos necesarios desde S3
+    download_from_s3(bucket, f"clientes/{rfc}/certificados/cert.pem", cert_path)
+    download_from_s3(bucket, f"clientes/{rfc}/certificados/fiel.pem", key_path)
+    download_from_s3(bucket, f"clientes/{rfc}/certificados/password.txt", password_path)
+    download_from_s3(bucket, f"clientes/{rfc}/tokens/token.txt", token_path)
+    download_from_s3(bucket, f"clientes/{rfc}/{year}/solicitudes/paquetes.txt", paquetes_path)
+
+    # Leer token
+    with open(token_path, "r", encoding="utf-8") as f:
         token = f.read().strip()
 
-    paquetes_ids_path = os.path.join(output_dir, "paquetes.txt")
-    with open(paquetes_ids_path, "r") as f:
-        paquete_ids = f.read().splitlines()
+    # Leer lista de paquetes
+    with open(paquetes_path, "r", encoding="utf-8") as f:
+        paquetes = [line.strip() for line in f if line.strip()]
 
-    for paquete_id in paquete_ids:
-        subprocess.run([
-            "python", "scripts/4_dwnld.py",
-            "--token", token,
-            "--rfc", rfc,
-            "--package_id", paquete_id,
-            "--output", output_dir
-        ], check=True)
+    if not paquetes:
+        print("No hay paquetes por descargar.")
+        return
+
+    pendientes = []
+
+    for paquete_id in paquetes:
+        try:
+            # Crear XML de descarga
+            NS_SOAP = "http://schemas.xmlsoap.org/soap/envelope/"
+            NS_DES = "http://DescargaMasivaTerceros.sat.gob.mx"
+            NS_DS = "http://www.w3.org/2000/09/xmldsig#"
+
+            envelope = etree.Element("{%s}Envelope" % NS_SOAP, nsmap={'s': NS_SOAP, 'des': NS_DES, 'ds': NS_DS})
+            body = etree.SubElement(envelope, "{%s}Body" % NS_SOAP)
+            entrada = etree.SubElement(body, "{%s}PeticionDescargaMasivaTercerosEntrada" % NS_DES)
+            pet = etree.SubElement(entrada, "{%s}peticionDescarga" % NS_DES, Id="_0", RfcSolicitante=rfc, IdPaquete=paquete_id)
+
+            # Firmar XML
+            sig = xmlsec.template.create(pet, xmlsec.Transform.EXCL_C14N, xmlsec.Transform.RSA_SHA1, ns="ds")
+            pet.insert(0, sig)
+            ref = xmlsec.template.add_reference(sig, xmlsec.Transform.SHA1, uri="#_0")
+            xmlsec.template.add_transform(ref, xmlsec.Transform.ENVELOPED)
+            ki = xmlsec.template.ensure_key_info(sig)
+            xmlsec.template.add_x509_data(ki)
+
+            key = xmlsec.Key.from_file(key_path, xmlsec.KeyFormat.PEM)
+            key.load_cert_from_file(cert_path, xmlsec.KeyFormat.CERT_PEM)
+            ctx = xmlsec.SignatureContext()
+            ctx.key = key
+            ctx.register_id(pet, "Id")
+            ctx.sign(sig)
+
+            xml_bytes = etree.tostring(envelope, encoding="utf-8", xml_declaration=True)
+
+            # Enviar solicitud al SAT
+            headers = {
+                "Content-Type": "text/xml; charset=utf-8",
+                "SOAPAction": "http://DescargaMasivaTerceros.sat.gob.mx/IDescargaMasivaTercerosService/Descargar",
+                "Authorization": f'WRAP access_token="{unquote(token)}"'
+            }
+            url = "https://cfdidescargamasiva.clouda.sat.gob.mx/DescargaMasivaService.svc"
+            response = requests.post(url, data=xml_bytes, headers=headers, timeout=90)
+            response.raise_for_status()
+
+            # Parsear respuesta
+            tree = etree.fromstring(response.content)
+            cod = tree.xpath("//*[local-name()='respuesta']/@CodEstatus")
+            msg = tree.xpath("//*[local-name()='respuesta']/@Mensaje")
+            b64 = tree.xpath("//*[local-name()='Paquete']/text()")
+
+            if not cod or cod[0] != "5000":
+                raise RuntimeError(f"SAT devolvió {cod}:{msg}")
+            if not b64 or not b64[0].strip():
+                raise RuntimeError("Paquete vacío o no disponible")
+
+            raw_zip = base64.b64decode(b64[0])
+            tipo = "metadata" if "M" in paquete_id.upper() else "cfdi"
+            s3_zip_path = f"clientes/{rfc}/{year}/paquetes/{tipo}/{paquete_id}.zip"
+
+            # Guardar ZIP local y subir a S3
+            local_zip = os.path.join(temp_dir, f"{paquete_id}.zip")
+            with open(local_zip, "wb") as f:
+                f.write(raw_zip)
+            upload_to_s3(local_zip, bucket, s3_zip_path)
+
+            # update_package_status_in_db(rfc, int(year), paquete_id, tipo)  # si activas Mongo
+
+            print(f"✓ Descargado y subido: {s3_zip_path}")
+
+        except Exception as e:
+            print(f"✗ Error al descargar {paquete_id}: {e}")
+            pendientes.append(paquete_id)
+    
+    with open(paquetes_path, "w", encoding="utf-8") as f:
+        for p in pendientes:
+            f.write(p + "\n")
+    upload_to_s3(paquetes_path, bucket, f"clientes/{rfc}/{year}/solicitudes/paquetes.txt")

@@ -127,9 +127,11 @@ async def descargar_paquetes(
     rfc: str = Form(...),
     year: int = Form(...)
 ):
-    temp_dir = f"/tmp/{rfc}/solicitudes/{year}"
-    token_path = f"/tmp/{rfc}/token.txt"
+    temp_dir = f"/tmp/{rfc}/{year}/paquetes"
+    os.makedirs(temp_dir, exist_ok=True)
 
-    download_sat_packages(token_path, rfc, temp_dir)
-
-    return {"message": "Descarga de paquetes completada"}
+    try:
+        download_sat_packages(rfc, temp_dir)
+        return {"message": "Descarga de paquetes completada"}
+    except Exception as e:
+        return {"error": str(e)}
