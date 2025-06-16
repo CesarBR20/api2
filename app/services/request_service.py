@@ -5,6 +5,7 @@ from uuid import uuid4
 from datetime import datetime
 from urllib.parse import unquote
 import xmlsec
+from app.services.mongo_service import guardar_solicitud
 
 from app.services.s3_service import read_file_from_s3, upload_file_to_s3, download_from_s3
 
@@ -63,7 +64,21 @@ def solicitar_cfdi_desde_sat(rfc, inicio, fin, tipo_solicitud, tipo_comp):
         f.write("")
         
     s3_paquetes_path = f"{base_s3_path}/{anio}/paquetes/.keep"
+    upload_file_to_s3(bucket, s3_paquetes_path, keep_paths)
     
+    solicitud_data = {
+        "rfc": rfc,
+        "id_solicitud": id_solicitud,
+        "tipo_solicitud": tipo_solicitud.lower(),
+        "tipo_comp": tipo_comp.upper(),
+        "fecha_inicio": inicio,
+        "fecha_fin": fin,
+        "fecha_solicitud": datetime.utcnow(),
+        "estado": "pendiente",
+        "paquetes": []
+    }
+    
+    guardar_solicitud(solicitud_data)  
 
     return id_solicitud
 

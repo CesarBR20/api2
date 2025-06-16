@@ -97,23 +97,106 @@ def create_sat_requests(token_path: str, rfc: str, start_year: int, output_dir: 
             "--output", output_dir
         ], check=True)
         
-def verify_sat_requests(token_path: str, rfc: str, output_dir: str):
-    with open(token_path, "r") as f:
+def verify_sat_requests(token_path, rfc, temp_dir):
+    import os
+    from app.services.s3_service import download_from_s3
+    from lxml import etree
+    import xmlsec
+    import requests
+    from urllib.parse import unquote
+
+    bucket = "satisfacture"
+    year = os.path.basename(temp_dir)
+    solicitud_ids_path = os.path.join(temp_dir, "id_solicitud.txt")
+    cer_path = os.path.join(f"/tmp/{rfc}", "cert.pem")
+    key_path = os.path.join(f"/tmp/{rfc}", "fiel.pem")
+
+    # Descargar archivos necesarios desde S3
+    download_from_s3(bucket, f"clientes/{rfc}/certificados/cert.pem", cer_path)
+    download_from_s3(bucket, f"clientes/{rfc}/certificados/fiel.pem", key_path)
+    download_from_s3(bucket, f"clientes/{rfc}/tokens/token.txt", token_path)
+    download_from_s3(bucket, f"clientes/{rfc}/{year}/solicitudes/id_solicitud.txt", solicitud_ids_path)
+
+    with open(token_path, encoding="utf-8") as f:
         token = f.read().strip()
 
-    # Asumiendo que tienes un archivo con los IDs de solicitud
-    solicitud_ids_path = os.path.join(output_dir, "id_solicitud.txt")
-    with open(solicitud_ids_path, "r") as f:
-        solicitud_ids = f.read().splitlines()
+    # Cargar solicitudes
+    with open(solicitud_ids_path, "r", encoding="utf-8") as f:
+        solicitudes = [line.strip() for line in f if line.strip()]
 
-    for solicitud_id in solicitud_ids:
-        subprocess.run([
-            "python", "scripts/3_verify.py",
-            "--token", token,
-            "--rfc", rfc,
-            "--request_id", solicitud_id,
-            "--output", output_dir
-        ], check=True)
+    resultados = []
+
+    for id_solicitud in solicitudes:
+        # Generar XML
+        envelope = etree.Element("{http://schemas.xmlsoap.org/soap/envelope/}Envelope", nsmap={
+            "s": "http://schemas.xmlsoap.org/soap/envelope/",
+            "ds": "http://www.w3.org/2000/09/xmldsig#"
+        })
+        body = etree.SubElement(envelope, "{http://schemas.xmlsoap.org/soap/envelope/}Body")
+        verif = etree.SubElement(body, "{http://DescargaMasivaTerceros.sat.gob.mx}VerificaSolicitudDescarga")
+        solicitud = etree.SubElement(verif, "{http://DescargaMasivaTerceros.sat.gob.mx}solicitud")
+        solicitud.set("IdSolicitud", id_solicitud)
+        solicitud.set("RfcSolicitante", rfc)
+
+        # Firmar XML
+        sig = xmlsec.template.create(solicitud, xmlsec.Transform.EXCL_C14N, xmlsec.Transform.RSA_SHA1, ns="ds")
+        solicitud.insert(0, sig)
+        ref = xmlsec.template.add_reference(sig, xmlsec.Transform.SHA1)
+        xmlsec.template.add_transform(ref, xmlsec.Transform.ENVELOPED)
+        ki = xmlsec.template.ensure_key_info(sig)
+        xmlsec.template.add_x509_data(ki)
+        key = xmlsec.Key.from_file(key_path, xmlsec.KeyFormat.PEM)
+        key.load_cert_from_file(cer_path, xmlsec.KeyFormat.CERT_PEM)
+        ctx = xmlsec.SignatureContext()
+        ctx.key = key
+        ctx.sign(sig)
+
+        xml_firmado = etree.tostring(envelope, encoding="utf-8", xml_declaration=True)
+
+        # Enviar al SAT
+        headers = {
+            "Content-Type": "text/xml; charset=utf-8",
+            "SOAPAction": "http://DescargaMasivaTerceros.sat.gob.mx/IVerificaSolicitudDescargaService/VerificaSolicitudDescarga",
+            "Authorization": f'WRAP access_token="{unquote(token)}"'
+        }
+        url = "https://cfdidescargamasivasolicitud.clouda.sat.gob.mx/VerificaSolicitudDescargaService.svc"
+        response = requests.post(url, data=xml_firmado, headers=headers, timeout=60)
+
+        # Parsear respuesta
+        tree = etree.fromstring(response.content)
+        result = tree.find(".//{http://DescargaMasivaTerceros.sat.gob.mx}VerificaSolicitudDescargaResult")
+        estado = result.get("EstadoSolicitud", "Desconocido")
+        cod_estatus = result.get("CodEstatus", "")
+        mensaje = result.get("Mensaje", "")
+        numero_cfdis = result.get("NumeroCFDIs", "")
+        ids_paquetes = []
+
+        nodo_paquetes = tree.find(".//{http://DescargaMasivaTerceros.sat.gob.mx}IdsPaquetes")
+        if nodo_paquetes is not None and nodo_paquetes.text:
+            ids_paquetes = [p for p in nodo_paquetes.text.strip().split("|") if p]
+            
+        if estado == "3":
+            paquetes_path = os.path.join(temp_dir, "paquetes.txt")
+            with open(paquetes_path, "w", encoding ="utf-8") as f:
+                for paquete in ids_paquetes:
+                    f.write(paquete + "\n")
+            
+            s3_paquetes_path = f"clientes/{rfc}/{year}/soliciudes/paquetes.txt"
+            from app.services.s3_service import upload_to_s3
+            upload_to_s3(paquetes_path, bucket,s3_paquetes_path)
+
+        resultados.append({
+            "id_solicitud": id_solicitud,
+            "estado": estado,
+            "codigo_estatus": cod_estatus,
+            "mensaje": mensaje,
+            "numero_cfdis": numero_cfdis,
+            "paquetes": ids_paquetes
+        })
+
+    return resultados
+
+
         
 def download_sat_packages(token_path: str, rfc: str, output_dir: str):
     with open(token_path, "r") as f:

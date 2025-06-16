@@ -9,6 +9,7 @@ from app.utils.pem_converter import convert_to_pem
 from app.services.s3_service import upload_to_s3, download_from_s3, upload_token_to_s3
 from app.services.auth_service import get_sat_token
 from app.services.request_service import solicitar_cfdi_desde_sat
+from app.services.mongo_service import existe_cliente, registrar_cliente
 import os
 
 router = APIRouter()
@@ -46,6 +47,9 @@ async def convert_and_upload_certificates(
     upload_to_s3(cert_pem_path, bucket_name, f"clientes/{rfc}/certificados/cert.pem")
     upload_to_s3(fiel_pem_path, bucket_name, f"clientes/{rfc}/certificados/fiel.pem")
     upload_to_s3(password_path, bucket_name, f"clientes/{rfc}/certificados/{password_file.filename}")
+    
+    if not existe_cliente(rfc):
+        registrar_cliente(rfc)
 
     return {
         "message": "Archivos convertidos y subidos exitosamente",
@@ -111,9 +115,12 @@ async def verificar_solicitudes(
     temp_dir = f"/tmp/{rfc}/solicitudes/{year}"
     token_path = f"/tmp/{rfc}/token.txt"
 
-    verify_sat_requests(token_path, rfc, temp_dir)
+    resultados = verify_sat_requests(token_path, rfc, temp_dir)
 
-    return {"message": "Verificación de solicitudes completada"}
+    return {
+        "message": "Verificación de solicitudes completada",
+        "resultados": resultados
+    }
 
 @router.post("/descargar-paquetes/")
 async def descargar_paquetes(
