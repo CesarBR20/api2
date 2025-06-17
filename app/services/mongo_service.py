@@ -52,7 +52,6 @@ def actualizar_estado_solicitud(rfc: str, id_solicitud: str, nuevo_estado: str):
         {"$set": {"estado": nuevo_estado}}
     )
 
-
 def verificar_si_completo(rfc: str, id_solicitud: str, paquetes_descargados: list):
     # Buscar la solicitud correspondiente
     solicitud = solicitudes_collection.find_one({
