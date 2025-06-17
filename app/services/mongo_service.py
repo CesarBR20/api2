@@ -40,18 +40,6 @@ def actualizar_paquete_descargado(rfc: str, paquete_id: str):
         {"$set": {"estado": "descargado"}}
     )
 
-def agregar_paquete_a_solicitud(rfc: str, paquete_id: str):
-    """Agrega un paquete al arreglo `paquetes` si no está ya registrado."""
-    solicitudes_collection.update_one(
-        {
-            "rfc": rfc,
-            "paquetes": {"$ne": paquete_id}
-        },
-        {
-            "$push": {"paquetes": paquete_id}
-        }
-    )
-    
 def agregar_paquete_a_solicitud(rfc: str, id_solicitud: str, paquete_id: str):
     solicitudes_collection.update_one(
         {"rfc": rfc, "id_solicitud": id_solicitud},
