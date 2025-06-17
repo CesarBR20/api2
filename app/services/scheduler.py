@@ -1,29 +1,42 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime
-import pytz
-import os
+from services.division_service import dividir_y_reintentar
 import requests
+import pytz
+import logging
 
+logger = logging.getLogger(__name__)
 tz = pytz.timezone("America/Mexico_City")
 
-def ejecutar_auth_y_verify():
+def verificacion_programada():
+    """
+    Verifica el estado de las solicitudes y divide las que excedan los límites.
+    """
     try:
-        print(f"[{datetime.now(tz)}] Ejecutando auth y verify...")
+        # Autenticación
+        auth_res = requests.post("http://localhost:8000/auth-sat/")
+        if auth_res.status_code != 200:
+            logger.error("Error en autenticación")
+            return
+        token = auth_res.json().get("token")
+        headers = {"Authorization": f"Bearer {token}"}
 
-        # 1. Autenticación
-        res_auth = requests.post("http://localhost:8000/auth-sat/")
-        print("Auth status:", res_auth.status_code)
+        # Obtener solicitudes pendientes
+        res = requests.get("http://localhost:8000/solicitudes-pendientes/", headers=headers)
+        if res.status_code != 200:
+            logger.error("Error al obtener solicitudes pendientes")
+            return
+        solicitudes = res.json()
 
-        # 2. Verificación
-        res_verify = requests.post("http://localhost:8000/verificar-solicitudes/")
-        print("Verify status:", res_verify.status_code)
+        for solicitud in solicitudes:
+            if solicitud["estado"] == 4:
+                dividir_y_reintentar(solicitud, token)
+            elif solicitud["estado"] == 3:
+                pass
 
     except Exception as e:
-        print(f"Error en tarea programada: {e}")
+        logger.error(f"Error en verificación programada: {e}")
 
 def iniciar_scheduler():
     scheduler = BackgroundScheduler(timezone=tz)
-    # Ejecutar todos los días a las 08:00 AM y 04:00 PM
-    scheduler.add_job(ejecutar_auth_y_verify, "cron", hour=8, minute=0)
-    scheduler.add_job(ejecutar_auth_y_verify, "cron", hour=16, minute=0)
+    scheduler.add_job(verificacion_programada, "cron", hour=23, minute=0)
     scheduler.start()

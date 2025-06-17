@@ -9,7 +9,7 @@ from app.services.mongo_service import guardar_solicitud
 
 from app.services.s3_service import read_file_from_s3, upload_file_to_s3, download_from_s3
 
-def solicitar_cfdi_desde_sat(rfc, inicio, fin, tipo_solicitud, tipo_comp):
+def solicitar_cfdi_desde_sat(rfc, inicio, fin, tipo_solicitud, tipo_comp, dividida_de=None):
     bucket = "satisfacture"
     base_s3_path = f"clientes/{rfc}"
     temp_dir = f"/tmp/{rfc}"
@@ -77,6 +77,9 @@ def solicitar_cfdi_desde_sat(rfc, inicio, fin, tipo_solicitud, tipo_comp):
         "estado": "pendiente",
         "paquetes": []
     }
+    
+    if dividida_de:
+        solicitud_data["dividida_de"] = dividida_de
     
     guardar_solicitud(solicitud_data)  
 

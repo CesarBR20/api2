@@ -9,6 +9,7 @@ from app.services.request_service import solicitar_cfdi_desde_sat
 from app.services.mongo_service import existe_cliente, registrar_cliente
 from fastapi import APIRouter, HTTPException
 from datetime import date, timedelta
+from typing import Optional
 import requests
 import os
 
@@ -99,10 +100,18 @@ async def solicitar_cfdi(
     inicio: str = Form(...),
     fin: str = Form(...),
     tipo_solicitud: str = Form(...),
-    tipo_comp: str = Form(...)
+    tipo_comp: str = Form(...),
+    dividida_de: Optional[str] = Form(None)
 ):
     try:
-        id_solicitud = solicitar_cfdi_desde_sat(rfc, inicio, fin, tipo_solicitud, tipo_comp)
+        id_solicitud = solicitar_cfdi_desde_sat(
+            rfc=rfc,
+            inicio=inicio,
+            fin=fin,
+            tipo_solicitud=tipo_solicitud,
+            tipo_comprobante=tipo_comp,
+            dividida_de=dividida_de
+        )
         return {"id_solicitud": id_solicitud}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
