@@ -32,3 +32,25 @@ def existe_solicitud(rfc: str, fecha_inicio: str, fecha_fin: str, tipo_solicitud
         "tipo_comp": tipo_comp
     }
     return solicitudes_collection.count_documents(query, limit=1) > 0
+
+from pymongo import UpdateOne
+
+def actualizar_paquete_descargado(rfc: str, paquete_id: str):
+    """Marca una solicitud como descargada si contiene ese paquete."""
+    solicitudes_collection.update_one(
+        {"rfc": rfc, "paquetes": paquete_id},
+        {"$set": {"estado": "descargado"}}
+    )
+
+def agregar_paquete_a_solicitud(rfc: str, paquete_id: str):
+    """Agrega un paquete al arreglo `paquetes` si no está ya registrado."""
+    solicitudes_collection.update_one(
+        {
+            "rfc": rfc,
+            "paquetes": {"$ne": paquete_id}
+        },
+        {
+            "$push": {"paquetes": paquete_id}
+        }
+    )
+

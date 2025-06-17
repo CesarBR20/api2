@@ -11,7 +11,7 @@ import xmlsec
 import requests
 from urllib.parse import unquote
 from app.services.s3_service import download_from_s3, read_file_from_s3, upload_to_s3
-#from app.services.mongo_service import update_package_status_in_db  
+from app.services.mongo_service import actualizar_paquete_descargado, agregar_paquete_a_solicitud 
 
 async def process_client_files(cer_file, key_file, password, rfc):
     temp_dir = f"/tmp/{rfc}"
@@ -312,6 +312,10 @@ def download_sat_packages(rfc: str, temp_dir: str):
             with open(local_zip, "wb") as f:
                 f.write(raw_zip)
             upload_to_s3(local_zip, bucket, s3_zip_path)
+            
+            # actualizar paquete en db
+            agregar_paquete_a_solicitud(rfc, paquete_id)
+            actualizar_paquete_descargado(rfc, paquete_id)
 
             descargados.append(paquete_id)
             print(f"✓ Descargado y subido: {s3_zip_path}")
