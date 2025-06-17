@@ -146,10 +146,11 @@ async def descargar_paquetes(
         return {"error": str(e)}
 
 @router.post("/ejecutar-solicitudes-iniciales/")
-def ejecutar_solicitudes_iniciales(rfc: str, year: int):
+def ejecutar_solicitudes_iniciales(rfc: str = Form(...), year: int = Form(...)):
+    
     try:
         # 1. Autenticación
-        auth_res = requests.post("http://localhost:8000/auth-sat/", json={"rfc": rfc})
+        auth_res = requests.post("http://localhost:8000/auth-sat/", data={"rfc": rfc})
         if auth_res.status_code != 200:
             raise HTTPException(status_code=500, detail="Error autenticando ante el SAT")
         token = auth_res.json().get("token")
@@ -168,9 +169,10 @@ def ejecutar_solicitudes_iniciales(rfc: str, year: int):
                 "rfc": rfc,
                 "fecha_inicio": fecha_inicio,
                 "fecha_fin": fecha_fin,
-                "tipo": "Metadata"
+                "tipo": "Metadata", 
+                "tipo_comp": "E"
             }
-            res = requests.post("http://localhost:8000/solicitar-cfdi/", headers=headers, json=body)
+            res = requests.post("http://localhost:8000/solicitar-cfdi/", headers=headers, data=body)
             solicitudes.append(res.json())
 
         # 3. Solicitudes CFDI (12 meses)
@@ -185,7 +187,8 @@ def ejecutar_solicitudes_iniciales(rfc: str, year: int):
                 "rfc": rfc,
                 "fecha_inicio": str(inicio),
                 "fecha_fin": str(fin),
-                "tipo": "CFDI"
+                "tipo": "CFDI", 
+                "tipo_comp": "E"
             }
             res = requests.post("http://localhost:8000/solicitar-cfdi/", headers=headers, json=body)
             solicitudes.append(res.json())
