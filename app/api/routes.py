@@ -1,7 +1,4 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from app.services.sat_service import process_client_files
-from app.services.sat_service import authenticate_with_sat
-from app.services.sat_service import create_sat_requests
 from app.services.sat_service import verify_sat_requests
 from app.services.sat_service import download_sat_packages
 from app.services.sat_service import convert_to_pem
@@ -10,6 +7,9 @@ from app.services.s3_service import upload_to_s3, download_from_s3, upload_token
 from app.services.auth_service import get_sat_token
 from app.services.request_service import solicitar_cfdi_desde_sat
 from app.services.mongo_service import existe_cliente, registrar_cliente
+from fastapi import APIRouter, HTTPException
+from datetime import date, timedelta
+import requests
 import os
 
 router = APIRouter()
@@ -135,3 +135,53 @@ async def descargar_paquetes(
         return {"message": "Descarga de paquetes completada"}
     except Exception as e:
         return {"error": str(e)}
+
+@router.post("/ejecutar-solicitudes-iniciales/")
+def ejecutar_solicitudes_iniciales(rfc: str, year: int):
+    try:
+        # 1. Autenticación
+        auth_res = requests.post("http://localhost:8000/auth-sat/", json={"rfc": rfc})
+        if auth_res.status_code != 200:
+            raise HTTPException(status_code=500, detail="Error autenticando ante el SAT")
+        token = auth_res.json().get("token")
+
+        headers = {"Authorization": f"Bearer {token}"}
+
+        solicitudes = []
+
+        # 2. Solicitudes Metadata (2 semestres)
+        metadata_periodos = [
+            (f"{year}-01-01", f"{year}-06-30"),
+            (f"{year}-07-01", f"{year}-12-31"),
+        ]
+        for fecha_inicio, fecha_fin in metadata_periodos:
+            body = {
+                "rfc": rfc,
+                "fecha_inicio": fecha_inicio,
+                "fecha_fin": fecha_fin,
+                "tipo": "Metadata"
+            }
+            res = requests.post("http://localhost:8000/solicitar-cfdi/", headers=headers, json=body)
+            solicitudes.append(res.json())
+
+        # 3. Solicitudes CFDI (12 meses)
+        for mes in range(1, 13):
+            inicio = date(year, mes, 1)
+            if mes == 12:
+                fin = date(year, 12, 31)
+            else:
+                fin = date(year, mes + 1, 1) - timedelta(days=1)
+
+            body = {
+                "rfc": rfc,
+                "fecha_inicio": str(inicio),
+                "fecha_fin": str(fin),
+                "tipo": "CFDI"
+            }
+            res = requests.post("http://localhost:8000/solicitar-cfdi/", headers=headers, json=body)
+            solicitudes.append(res.json())
+
+        return {"status": "ok", "solicitudes_generadas": len(solicitudes)}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
