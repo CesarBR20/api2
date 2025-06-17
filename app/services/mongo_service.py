@@ -52,3 +52,28 @@ def actualizar_estado_solicitud(rfc: str, id_solicitud: str, nuevo_estado: str):
         {"$set": {"estado": nuevo_estado}}
     )
 
+
+def verificar_si_completo(rfc: str, id_solicitud: str, paquetes_descargados: list):
+    # Buscar la solicitud correspondiente
+    solicitud = solicitudes_collection.find_one({
+        "rfc": rfc,
+        "id_solicitud": id_solicitud
+    })
+
+    if not solicitud:
+        print(f"Solicitud con ID {id_solicitud} no encontrada para el RFC {rfc}.")
+        return
+
+    # Obtener la lista de paquetes asociados a la solicitud
+    paquetes_solicitud = solicitud.get("paquetes", [])
+
+    # Verificar si todos los paquetes han sido descargados
+    if all(paquete in paquetes_descargados for paquete in paquetes_solicitud):
+        # Actualizar el estado de la solicitud a 'descargado'
+        solicitudes_collection.update_one(
+            {"_id": solicitud["_id"]},
+            {"$set": {"estado": "descargado"}}
+        )
+        print(f"Solicitud con ID {id_solicitud} actualizada a estado 'descargado'.")
+    else:
+        print(f"No todos los paquetes de la solicitud con ID {id_solicitud} han sido descargados.")
