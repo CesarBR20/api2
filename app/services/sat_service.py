@@ -313,9 +313,11 @@ def download_sat_packages(rfc: str, temp_dir: str):
                 f.write(raw_zip)
             upload_to_s3(local_zip, bucket, s3_zip_path)
             
+            id_solicitud = paquete_id.split("_")[0].lower()
+            
             # actualizar paquete en db
-            agregar_paquete_a_solicitud(rfc, paquete_id)
-            actualizar_paquete_descargado(rfc, paquete_id)
+            agregar_paquete_a_solicitud(rfc,  id_solicitud, paquete_id)
+            actualizar_paquete_descargado(rfc, id_solicitud, "descargado")
 
             descargados.append(paquete_id)
             print(f"✓ Descargado y subido: {s3_zip_path}")
