@@ -109,7 +109,7 @@ async def solicitar_cfdi(
             inicio=inicio,
             fin=fin,
             tipo_solicitud=tipo_solicitud,
-            tipo_comprobante=tipo_comp,
+            tipo_comp=tipo_comp,
             dividida_de=dividida_de
         )
         return {"id_solicitud": id_solicitud}
@@ -147,35 +147,35 @@ async def descargar_paquetes(
 
 @router.post("/ejecutar-solicitudes-iniciales/")
 def ejecutar_solicitudes_iniciales(rfc: str = Form(...), year: int = Form(...)):
-    
     try:
-        # 1. Autenticación
         auth_res = requests.post("http://localhost:8000/auth-sat/", data={"rfc": rfc})
         if auth_res.status_code != 200:
             raise HTTPException(status_code=500, detail="Error autenticando ante el SAT")
         token = auth_res.json().get("token")
 
         headers = {"Authorization": f"Bearer {token}"}
-
         solicitudes = []
 
-        # 2. Solicitudes Metadata (2 semestres)
+        # Metadata: 2 semestres
         metadata_periodos = [
             (f"{year}-01-01", f"{year}-06-30"),
-            (f"{year}-07-01", f"{year}-12-31"),
+            (f"{year}-07-01", f"{year}-12-31")
         ]
-        for fecha_inicio, fecha_fin in metadata_periodos:
+
+        for inicio, fin in metadata_periodos:
             body = {
                 "rfc": rfc,
-                "fecha_inicio": fecha_inicio,
-                "fecha_fin": fecha_fin,
-                "tipo": "Metadata", 
+                "inicio": inicio,
+                "fin": fin,
+                "tipo_solicitud": "Metadata",
                 "tipo_comp": "E"
             }
             res = requests.post("http://localhost:8000/solicitar-cfdi/", headers=headers, data=body)
+            if res.status_code != 200:
+                raise HTTPException(status_code=res.status_code, detail=res.text)
             solicitudes.append(res.json())
 
-        # 3. Solicitudes CFDI (12 meses)
+        # CFDI: 12 meses
         for mes in range(1, 13):
             inicio = date(year, mes, 1)
             if mes == 12:
@@ -185,12 +185,14 @@ def ejecutar_solicitudes_iniciales(rfc: str = Form(...), year: int = Form(...)):
 
             body = {
                 "rfc": rfc,
-                "fecha_inicio": str(inicio),
-                "fecha_fin": str(fin),
-                "tipo": "CFDI", 
+                "inicio": str(inicio),
+                "fin": str(fin),
+                "tipo_solicitud": "CFDI",
                 "tipo_comp": "E"
             }
-            res = requests.post("http://localhost:8000/solicitar-cfdi/", headers=headers, json=body)
+            res = requests.post("http://localhost:8000/solicitar-cfdi/", headers=headers, data=body)
+            if res.status_code != 200:
+                raise HTTPException(status_code=res.status_code, detail=res.text)
             solicitudes.append(res.json())
 
         return {"status": "ok", "solicitudes_generadas": len(solicitudes)}

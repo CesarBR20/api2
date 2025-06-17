@@ -78,9 +78,6 @@ def solicitar_cfdi_desde_sat(rfc, inicio, fin, tipo_solicitud, tipo_comp, dividi
         "paquetes": []
     }
     
-    if dividida_de:
-        solicitud_data["dividida_de"] = dividida_de
-    
     guardar_solicitud(solicitud_data)  
 
     return id_solicitud
@@ -91,15 +88,19 @@ def build_solicitud_xml(rfc, inicio, fin, tipo_solicitud, tipo_comp):
     NS_WSA      = "http://www.w3.org/2005/08/addressing"
     NS_DS       = "http://www.w3.org/2000/09/xmldsig#"
 
-    tipo_solicitud = tipo_solicitud.upper()
     tipo_comp = tipo_comp.upper()
-    
-    if "folio" in tipo_solicitud.lower():
+
+    if tipo_solicitud.upper() == "CFDI":
+        op = "SolicitaDescargaEmitidos" if tipo_comp == "E" else "SolicitaDescargaRecibidos"
+    elif tipo_solicitud.lower() == "metadata":
+        tipo_solicitud = "Metadata"  # Fuerza el valor correcto
+        op = "SolicitaDescargaEmitidos" if tipo_comp == "E" else "SolicitaDescargaRecibidos"
+    elif tipo_solicitud.upper() == "FOLIO":
+        tipo_solicitud = "Folio"
         op = "SolicitaDescargaFolio"
-    elif tipo_comp == "E":
-        op = "SolicitaDescargaEmitidos"
     else:
-        op = "SolicitaDescargaRecibidos"
+        raise ValueError("Tipo de solicitud no reconocido.")
+
 
     soap_action = f"http://DescargaMasivaTerceros.sat.gob.mx/ISolicitaDescargaService/{op}"
 
@@ -120,12 +121,12 @@ def build_solicitud_xml(rfc, inicio, fin, tipo_solicitud, tipo_comp):
     sol.set("RfcSolicitante", rfc)
     sol.set("FechaInicial", inicio + "T00:00:00")
     sol.set("FechaFinal",  fin + "T23:59:59")
-    sol.set("TipoSolicitud", tipo_solicitud.capitalize())
+    sol.set("TipoSolicitud", tipo_solicitud)
 
     # Solo CFDI o Metadata permiten filtros opcionales
-    if tipo_solicitud in ("CFDI", "METADATA"):
+    if tipo_solicitud.lower() in ("cfdi", "metadata"):
         sol.set("TipoComp", tipo_comp)
-        sol.set("RfcEmisor", rfc)  
+        sol.set("RfcEmisor", rfc)
 
     return env, soap_action
 
