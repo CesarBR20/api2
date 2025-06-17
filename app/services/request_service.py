@@ -90,11 +90,10 @@ def build_solicitud_xml(rfc, inicio, fin, tipo_solicitud, tipo_comp):
 
     tipo_solicitud = tipo_solicitud.upper()
     tipo_comp = tipo_comp.upper()
-
-    # Determinar el nodo y SOAPAction correcto según reglas del SAT
+    
     if "folio" in tipo_solicitud.lower():
         op = "SolicitaDescargaFolio"
-    elif tipo_comp == "E":  # Emitidos
+    elif tipo_comp == "E":
         op = "SolicitaDescargaEmitidos"
     else:
         op = "SolicitaDescargaRecibidos"
@@ -118,13 +117,12 @@ def build_solicitud_xml(rfc, inicio, fin, tipo_solicitud, tipo_comp):
     sol.set("RfcSolicitante", rfc)
     sol.set("FechaInicial", inicio + "T00:00:00")
     sol.set("FechaFinal",  fin + "T23:59:59")
-    sol.set("TipoSolicitud", tipo_solicitud)
+    sol.set("TipoSolicitud", tipo_solicitud.capitalize())
 
     # Solo CFDI o Metadata permiten filtros opcionales
     if tipo_solicitud in ("CFDI", "METADATA"):
         sol.set("TipoComp", tipo_comp)
-        sol.set("RfcEmisor", rfc)  # si el cliente siempre es el emisor
-        # puedes agregar más filtros si luego quieres: folio, rfc receptor, etc.
+        sol.set("RfcEmisor", rfc)  
 
     return env, soap_action
 
