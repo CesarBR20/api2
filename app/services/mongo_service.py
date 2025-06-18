@@ -76,3 +76,12 @@ def verificar_si_completo(rfc: str, id_solicitud: str, paquetes_descargados: lis
         print(f"Solicitud con ID {id_solicitud} actualizada a estado 'descargado'.")
     else:
         print(f"No todos los paquetes de la solicitud con ID {id_solicitud} han sido descargados.")
+
+def obtener_coleccion_solicitudes():
+    uri = os.getenv("MONGO_URI")
+    if not uri:
+        raise ValueError("No se ha definido MONGO_URI en el entorno")
+    
+    client = MongoClient(uri)
+    db = client["satisfacture"]  
+    return db["solicitudes"] 
