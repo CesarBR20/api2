@@ -20,8 +20,15 @@ def registrar_cliente(rfc: str):
         "creado_en": datetime.utcnow()
     })
 
-def guardar_solicitud(data: dict):
-    solicitudes_collection.insert_one(data)
+def guardar_solicitud(data):
+    # Normalizar
+    data["rfc"] = data["rfc"].upper()
+    data["tipo_solicitud"] = data["tipo_solicitud"].lower()
+    data["tipo_comp"] = data["tipo_comp"].upper()
+    # Insertar en la colección 'solicitudes'
+    solicitudes = obtener_coleccion_solicitudes()
+    solicitudes.insert_one(data)
+
 
 def existe_solicitud(rfc: str, fecha_inicio: str, fecha_fin: str, tipo_solicitud: str, tipo_comp: str) -> bool:
     query = {
@@ -33,11 +40,10 @@ def existe_solicitud(rfc: str, fecha_inicio: str, fecha_fin: str, tipo_solicitud
     }
     return solicitudes_collection.count_documents(query, limit=1) > 0
 
-def actualizar_paquete_descargado(rfc: str, paquete_id: str):
-    """Marca una solicitud como descargada si contiene ese paquete."""
+def actualizar_paquete_descargado(rfc: str, paquete_id: str, estado: str = "descargado"):
     solicitudes_collection.update_one(
         {"rfc": rfc, "paquetes": paquete_id},
-        {"$set": {"estado": "descargado"}}
+        {"$set": {"estado": estado}}
     )
 
 def agregar_paquete_a_solicitud(rfc: str, id_solicitud: str, paquete_id: str):

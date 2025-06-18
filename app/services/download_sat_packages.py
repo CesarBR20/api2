@@ -5,6 +5,7 @@ import xmlsec
 import requests
 from urllib.parse import unquote
 from app.services.s3_service import download_from_s3, read_file_from_s3, upload_to_s3
+from app.services.mongo_service import actualizar_paquete_descargado
 # from app.services.mongo_service import update_package_status_in_db  # si luego activas Mongo
 from datetime import datetime
 
@@ -99,9 +100,9 @@ def download_sat_packages(rfc: str, temp_dir: str):
             with open(local_zip, "wb") as f:
                 f.write(raw_zip)
             upload_to_s3(local_zip, bucket, s3_zip_path)
-
-            # update_package_status_in_db(rfc, int(year), paquete_id, tipo)  # si activas Mongo
-
+            
+            actualizar_paquete_descargado(rfc, paquete_id)
+            
             print(f"✓ Descargado y subido: {s3_zip_path}")
 
         except Exception as e:
