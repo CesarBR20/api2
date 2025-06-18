@@ -1,17 +1,19 @@
+from app.services.s3_service import upload_to_s3, download_from_s3, upload_token_to_s3
+from app.services.mongo_service import existe_cliente, registrar_cliente
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from app.services.sat_service import verify_sat_requests
+from app.services.mongo_service import obtener_coleccion_solicitudes
+from app.services.request_service import solicitar_cfdi_desde_sat
 from app.services.sat_service import download_sat_packages
+from app.services.sat_service import verify_sat_requests
+from app.services.auth_service import get_sat_token
 from app.services.sat_service import convert_to_pem
 from app.utils.pem_converter import convert_to_pem
-from app.services.s3_service import upload_to_s3, download_from_s3, upload_token_to_s3
-from app.services.auth_service import get_sat_token
-from app.services.request_service import solicitar_cfdi_desde_sat
-from app.services.mongo_service import existe_cliente, registrar_cliente
 from fastapi import APIRouter, HTTPException
 from datetime import date, timedelta
 from typing import Optional
 import requests
 import os
+
 
 router = APIRouter()
 
@@ -104,6 +106,25 @@ async def solicitar_cfdi(
     dividida_de: Optional[str] = Form(None)
 ):
     try:
+        # Validar si ya existe una solicitud con los mismos parámetros
+        coleccion = obtener_coleccion_solicitudes()
+        filtro = {
+            "rfc": rfc.upper(),
+            "tipo_solicitud": tipo_solicitud.lower(),
+            "tipo_comp": tipo_comp.upper(),
+            "fecha_inicio": inicio,
+            "fecha_fin": fin
+        }
+
+        solicitud_existente = coleccion.find_one(filtro)
+
+        if solicitud_existente:
+            raise HTTPException(
+                status_code=400,
+                detail="Ya existe una solicitud con los mismos parámetros. No se puede enviar otra igual."
+            )
+
+        # Si no existe, proceder con la solicitud
         id_solicitud = solicitar_cfdi_desde_sat(
             rfc=rfc,
             inicio=inicio,
@@ -113,6 +134,7 @@ async def solicitar_cfdi(
             dividida_de=dividida_de
         )
         return {"id_solicitud": id_solicitud}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
