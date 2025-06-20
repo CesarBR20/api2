@@ -8,6 +8,7 @@ from app.services.s3_service import download_from_s3, read_file_from_s3, upload_
 from app.services.mongo_service import actualizar_paquete_descargado
 # from app.services.mongo_service import update_package_status_in_db  # si luego activas Mongo
 from datetime import datetime
+from app.services.mongo_service import obtener_tipo_paquete
 
 def download_sat_packages(rfc: str, temp_dir: str):
     year = os.path.basename(os.path.dirname(temp_dir))
@@ -92,7 +93,7 @@ def download_sat_packages(rfc: str, temp_dir: str):
                 raise RuntimeError("Paquete vacío o no disponible")
 
             raw_zip = base64.b64decode(b64[0])
-            tipo = "metadata" if "M" in paquete_id.upper() else "cfdi"
+            tipo = obtener_tipo_paquete(rfc, paquete_id)
             s3_zip_path = f"clientes/{rfc}/{year}/paquetes/{tipo}/{paquete_id}.zip"
 
             # Guardar ZIP local y subir a S3

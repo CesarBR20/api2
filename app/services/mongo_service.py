@@ -91,3 +91,12 @@ def obtener_coleccion_solicitudes():
     client = MongoClient(uri)
     db = client["satisfacture"]  
     return db["solicitudes"] 
+
+def obtener_tipo_paquete(rfc: str, paquete_id: str) -> str:
+    solicitud = solicitudes_collection.find_one({
+        "rfc": rfc,
+        "paquetes": paquete_id
+    })
+    if solicitud:
+        return solicitud.get("tipo_solicitud", "cfdi")  # default cfdi si no se encuentra
+    return "cfdi"
