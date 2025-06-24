@@ -7,7 +7,8 @@ load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI")
 client = MongoClient(MONGO_URI)
-db = client["sat_cfdi"]
+db_name = os.getenv("MONGO_DB_NAME", "sat_cfdi") 
+db = client[db_name]
 clientes_collection = db["clientes"]
 solicitudes_collection = db["solicitudes"]
 
@@ -25,7 +26,6 @@ def guardar_solicitud(data):
     data["rfc"] = data["rfc"].upper()
     data["tipo_solicitud"] = data["tipo_solicitud"].lower()
     data["tipo_comp"] = data["tipo_comp"].upper()
-    # Insertar en la colección 'solicitudes'
     solicitudes = obtener_coleccion_solicitudes()
     solicitudes.insert_one(data)
 
@@ -87,10 +87,12 @@ def obtener_coleccion_solicitudes():
     uri = os.getenv("MONGO_URI")
     if not uri:
         raise ValueError("No se ha definido MONGO_URI en el entorno")
-    
+
+    db_name = os.getenv("MONGO_DB_NAME", "sat_cfdi")
     client = MongoClient(uri)
-    db = client["satisfacture"]  
-    return db["solicitudes"] 
+    db = client[db_name]
+    return db["solicitudes"]
+
 
 def obtener_tipo_paquete(rfc: str, paquete_id: str) -> str:
     solicitud = solicitudes_collection.find_one({

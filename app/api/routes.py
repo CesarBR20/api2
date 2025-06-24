@@ -2,14 +2,11 @@ from app.services.s3_service import upload_to_s3, download_from_s3, upload_token
 from app.services.mongo_service import existe_cliente, registrar_cliente
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.services.mongo_service import obtener_coleccion_solicitudes
-from app.services.request_service import solicitar_cfdi_desde_sat
-from app.services.sat_service import download_sat_packages
-from app.services.sat_service import verify_sat_requests
-from app.services.auth_service import get_sat_token
+from app.services.sat_service import download_sat_packages, get_sat_token, solicitar_cfdi_desde_sat, verify_sat_requests
 from app.services.sat_service import convert_to_pem
 from app.utils.pem_converter import convert_to_pem
 from fastapi import APIRouter, HTTPException
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import Optional
 import requests
 import os
@@ -106,7 +103,6 @@ async def solicitar_cfdi(
     dividida_de: Optional[str] = Form(None)
 ):
     try:
-        # Validar si ya existe una solicitud con los mismos parámetros
         coleccion = obtener_coleccion_solicitudes()
         filtro = {
             "rfc": rfc.upper(),
@@ -119,12 +115,25 @@ async def solicitar_cfdi(
         solicitud_existente = coleccion.find_one(filtro)
 
         if solicitud_existente:
-            raise HTTPException(
-                status_code=400,
-                detail="Ya existe una solicitud con los mismos parámetros. No se puede enviar otra igual."
-            )
+            estado = solicitud_existente.get("estado")
+            fecha_solicitud = solicitud_existente.get("fecha_solicitud")
 
-        # Si no existe, proceder con la solicitud
+            if estado in ("pendiente", "descargado"):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Ya existe una solicitud con los mismos parámetros."
+                )
+
+            if estado == "1":
+                if isinstance(fecha_solicitud, datetime):
+                    dias = (datetime.utcnow() - fecha_solicitud).days
+                    if dias < 4:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Solicitud previa aún activa (estado 1, {dias} días). Espera o reintenta después."
+                        )
+
+        # Si no hay conflicto, lanzar la nueva solicitud
         id_solicitud = solicitar_cfdi_desde_sat(
             rfc=rfc,
             inicio=inicio,
@@ -138,6 +147,7 @@ async def solicitar_cfdi(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/verificar-solicitudes/")
 async def verificar_solicitudes(
     rfc: str = Form(...),
@@ -146,12 +156,9 @@ async def verificar_solicitudes(
     temp_dir = f"/tmp/{rfc}/solicitudes/{year}"
     token_path = f"/tmp/{rfc}/token.txt"
 
-    resultados = verify_sat_requests(token_path, rfc, temp_dir)
+    resultado = verify_sat_requests(token_path, rfc, temp_dir)
 
-    return {
-        "message": "Verificación de solicitudes completada",
-        "resultados": resultados
-    }
+    return resultado
 
 @router.post("/descargar-paquetes/")
 async def descargar_paquetes(
