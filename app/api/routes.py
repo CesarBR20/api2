@@ -1,12 +1,14 @@
+from app.services.sat_service import download_sat_packages, get_sat_token, solicitar_cfdi_desde_sat, verify_sat_requests
 from app.services.s3_service import upload_to_s3, download_from_s3, upload_token_to_s3
 from app.services.mongo_service import existe_cliente, registrar_cliente
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from app.services.cfdi_processing_service import procesar_cfdi_completo
 from app.services.mongo_service import obtener_coleccion_solicitudes
-from app.services.sat_service import download_sat_packages, get_sat_token, solicitar_cfdi_desde_sat, verify_sat_requests
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.services.sat_service import convert_to_pem
 from app.utils.pem_converter import convert_to_pem
-from fastapi import APIRouter, HTTPException
 from datetime import date, timedelta, datetime
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from typing import Optional
 import requests
 import os
@@ -226,5 +228,22 @@ def ejecutar_solicitudes_iniciales(rfc: str = Form(...), year: int = Form(...)):
 
         return {"status": "ok", "solicitudes_generadas": len(solicitudes)}
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+class ProcesarCFDIRequest(BaseModel):
+    cliente_rfc: str
+    bucket_name: str
+    prefix: str
+
+@router.post("/procesar-cfdi/")
+async def procesar_cfdi(request: ProcesarCFDIRequest):
+    try:
+        procesar_cfdi_completo(
+            cliente_rfc=request.cliente_rfc,
+            bucket_name=request.bucket_name,
+            prefix=request.prefix
+        )
+        return {"detail": "Procesamiento finalizado correctamente."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
