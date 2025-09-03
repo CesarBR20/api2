@@ -135,3 +135,16 @@ Actualmente, se ha alcanzado un nivel funcional completo en los módulos de desc
 
 Este sistema ha sido inspirado y desarrollado con base en la implementación de referencia:  
 🔗 https://github.com/lunasoft/sw-descargamasiva-dotnet
+
+
+### CASOS ESPECIFICOS DE FALTA DE CFDI O XML
+Al hacer una solicitud ya sea individual o masiva se genera un id por socliditud, es decir, en el caso de que se haya hecho una solicitud individual se guardara un txt con ese
+id de solicitud, en el caso de que se realice una solicitud masiva (14 solicitudes - 12 por mes de xml y 2 semestrales de metadata) se guardara un txt con las 14 solicitudes, y cada fila sera una solicitud; el job o el proceso de verificacion de esta api recorrera cada fila del txt de solicitud para verificar el estado en el que se encuentra. El estado inicial es 1 (1 -> La solicitud ha sido aceptada y el SAT empezara a generar los paquetes de la o las solicitudes), una vez el SAT haya recopilado los xml o la metadata del rango de fechas de cada solicitud se generaran los paquetes representados en un archivo con extension .zip y el estado pasara de 1 a 3 (3 -> En este estado el SAT dice que se han generado los paquetes y estan listos para su descarga), una vez estando en el estado 3, se trendra un maximo de 72 horas (3 dias) para poder descargar los paquetes, en caso de que quieras descargar los paquetes pasando el tiempo maximo el SAT arrojara el estao 6 (6 -> La solicitud ha caducado). 
+
+Hacer una solicitud usando esta API es equivalente a usar el portal del SAT, por lo que si tu haces una solicitud de un rango de fechas usando la API y despues de un tiempo te metes al portal del SAT con las credenciales usadas en la API y te aparece que puedes descargar, no podras usar la API puesto que los paquetes ya se han descargado.
+
+Caso ejemplo:
+- Persona 1: Usa la API
+- Persona 2: Usa el portal del SAT
+
+Suponiendo que la Persona 1 hace una solicitud masiva (14 solicitudes), pasa el tiempo y de esas 14 solicitudes, 5 ya estan en estado 3 y las demas (9) estan en estado 1. En este caso, esas 5 solicitudes ya se encuentran disponibles en el SAT, por lo que si la Persona 2 entra al portal y las descarga, estara interrumpiendo el proceso de analisis de CFDI, puesto que despues de haberlas descargado el SAT las pondra como descargadas, esto significa que cuando se ejecute el proceso de descarga de la API, no descargara nada puesto que ya han sido descargadas. En este tipo de casos es necesario volver a realizar una solicitud nueva de esas 5 que han sido descargadas.
