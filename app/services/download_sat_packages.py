@@ -77,12 +77,13 @@ def download_sat_packages(rfc: str, temp_dir: str):
                 "SOAPAction": "http://DescargaMasivaTerceros.sat.gob.mx/IDescargaMasivaTercerosService/Descargar",
                 "Authorization": f'WRAP access_token="{unquote(token)}"'
             }
-            url = "https://cfdidescargamasivaconsulta.clouda.sat.gob.mx/DescargaMasivaTercerosService.svc"
-            response = requests.post(url, data=xml_bytes, headers=headers, timeout=90)
+            url = "https://cfdidescargamasivasolicitud.clouda.sat.gob.mx/DescargaMasivaTercerosService.svc"
+            response = requests.post(url, data=xml_bytes, headers=headers, timeout=900)
             response.raise_for_status()
 
-            # Parsear respuesta
-            tree = etree.fromstring(response.content)
+            # Parsear respuesta - ✅ CORREGIDO: Agregado XMLParser con huge_tree
+            parser = etree.XMLParser(huge_tree=True)
+            tree = etree.fromstring(response.content, parser)
             cod = tree.xpath("//*[local-name()='respuesta']/@CodEstatus")
             msg = tree.xpath("//*[local-name()='respuesta']/@Mensaje")
             b64 = tree.xpath("//*[local-name()='Paquete']/text()")

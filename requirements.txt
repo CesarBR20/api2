@@ -1,4 +1,11 @@
 fastapi
-uvicorn
-python multipart
-boto 3
+uvicorn[standard]
+pydantic
+requests
+boto3
+pymongo
+python-dotenv
+python-multipart
+lxml
+xmlsec
+xmltodict
