@@ -620,7 +620,7 @@ El SAT puede devolver paquetes con archivos XML extremadamente grandes (>10MB) q
 **Estrategia de Parsing:**
 
 ```python
-# 1. Intento con parser robusto (Implementado)
+# 1. Intento con parser robusto (Implementado - No hubo mejoria)
 parser = etree.XMLParser(
     huge_tree=True,      # Permite nodos de texto >10MB
     recover=True,        # Intenta recuperarse de errores
