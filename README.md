@@ -5,78 +5,89 @@
 Plataforma SaaS multiusuario diseñada para automatizar el análisis de precios de transferencia y la gestión fiscal de empresas en México. El sistema integra los Web Services del SAT (Servicio de Administración Tributaria) versión 1.5 para la descarga masiva y procesamiento automático de CFDI (Comprobantes Fiscales Digitales por Internet) y metadata.
 
 ### Objetivo Principal
+
 Resolver la problemática cliente-despacho contable al permitir que los contribuyentes suban su FIEL (e.firma) y el sistema obtenga automáticamente todos sus comprobantes fiscales desde la fuente oficial del SAT, eliminando el intercambio manual de archivos y reduciendo el tiempo de análisis de días a minutos.
 
 ### Propuesta de Valor
+
 - **Velocidad:** Análisis de precios de transferencia generados en minutos vs días del proceso manual
 - **Precisión:** Datos obtenidos directamente del SAT, eliminando errores de selección manual
 - **Automatización completa:** Desde la solicitud hasta el procesamiento, sin intervención manual
 - **Escalabilidad:** Estrategia de descarga adaptativa según tamaño de empresa (diaria/semanal/mensual)
 
 ### Usuarios Objetivo
+
 1. **Despachos contables:** Que necesitan hacer precios de transferencia para múltiples clientes
 2. **Contadores independientes:** Que buscan automatizar análisis fiscales
 3. **Empresas:** Que requieren análisis fiscal interno periódico
 4. **Personas físicas con actividad empresarial:** Que necesitan cumplir con obligaciones de precios de transferencia
 
 ### Tipo de Proyecto
+
 **API REST (Backend)** - Microservicio especializado en integración con SAT
 
 ## Stack Tecnológico
 
 ### Lenguajes y Frameworks
-- **Python:** 3.12.9
-- **FastAPI:** Framework web moderno y de alto rendimiento
+
+- **Python:** 3.12.9 - [https://www.python.org/](https://www.python.org/)
+- **FastAPI:** Framework web moderno y de alto rendimiento - [https://fastapi.tiangolo.com/](https://fastapi.tiangolo.com/)
 
 ### Bibliotecas Principales
-- **lxml:** 5.2.2+ - Procesamiento de XML y manejo de documentos grandes
-- **xmltodict:** 0.14.2+
-- **xmlsec:** 1.3.15+ - Firma digital con certificados FIEL
-- **requests:** 2.32.3+ - Cliente HTTP para consumir Web Services del SAT
-- **pymongo:** 4.12.0+ - Driver de MongoDB para Python
-- **boto3:** 1.38.7+ - SDK de AWS para Python (S3 principalmente)
+
+- **lxml:** 5.2.2 - Procesamiento de XML y manejo de documentos grandes - [https://lxml.de/](https://lxml.de/)
+- **xmltodict:** 0.14.2 - Conversión de XML a diccionarios Python
+- **xmlsec:** 1.3.15 - Firma digital con certificados FIEL - [https://pypi.org/project/xmlsec/](https://pypi.org/project/xmlsec/)
+- **requests:** 2.32.3 - Cliente HTTP para consumir Web Services del SAT
+- **pymongo:** 4.12.0 - Driver de MongoDB para Python
+- **boto3:** 1.38.7 - SDK de AWS para Python (S3 principalmente)
 
 ### Infraestructura
+
 - **MongoDB:** Base de datos NoSQL para almacenamiento de solicitudes y metadatos
 - **Amazon S3:** Almacenamiento de certificados FIEL, tokens y archivos descargados
 - **Docker:** Contenedorización de la aplicación
 - **AWS ECS (Elastic Container Service):** Orquestación y deployment de contenedores
 - **Amazon ECR:** Registro de imágenes Docker
 
-
 ## Dependencias Externas
 
 ### Servicios Requeridos
 
-1. **Base de Datos MongoDB**
-   - Debe estar accesible en la red
-   - Se requieren las colecciones: `solicitudes`, `paquetes`
-   - Variables de entorno necesarias: `MONGO_URI`, `MONGO_DB`
+#### 1. Base de Datos MongoDB
 
-2. **Amazon S3**
-   - Bucket configurado para almacenar:
-     - Certificados FIEL (`.cer`, `.key`)
-     - Tokens de autenticación
-     - Archivos descargados (`.zip`)
-   - Credenciales AWS configuradas: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+- Debe estar accesible en la red
+- Se requieren las colecciones: `solicitudes`, `paquetes`, `cfdi`, `metadata`, `clientes`, `grupos`, `usuarios`, `uploads`
+- Variables de entorno necesarias: `MONGO_URI`, `MONGO_DB`
 
-3. **Web Services del SAT**
-   - URL de autenticación: Configurada en variable de entorno
-   - URL de solicitud de descarga
-   - URL de verificación
-   - URL de descarga de paquetes
-   - **Nota:** Las URLs son proporcionadas por el SAT y pueden variar entre ambientes.
+#### 2. Amazon S3
 
-4. **Certificados FIEL del Contribuyente**
-   - Certificado (.cer convertido a .pem)
-   - Llave privada (.key convertida a .pem)
-   - Contraseña de la llave privada en txt con el nombre de **password.txt**
+- Bucket configurado para almacenar:
+  - Certificados FIEL (`.cer`, `.key`)
+  - Tokens de autenticación
+  - Archivos descargados (`.zip`)
+- Credenciales AWS configuradas: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+
+#### 3. Web Services del SAT
+
+- URL de autenticación: Configurada en variable de entorno
+- URL de solicitud de descarga
+- URL de verificación
+- URL de descarga de paquetes
+- **Nota:** Las URLs son proporcionadas por el SAT y pueden variar entre ambientes
+
+#### 4. Certificados FIEL del Contribuyente
+
+- Certificado (.cer convertido a .pem)
+- Llave privada (.key convertida a .pem)
+- Contraseña de la llave privada en txt con el nombre de **password.txt**
 
 ## Iniciar el Repositorio
 
 ### Instalar Dependencias
 
 #### Dependencias del Sistema (Linux/Ubuntu)
+
 ```bash
 # Instalar librerías necesarias para xmlsec y lxml
 sudo apt-get update
@@ -90,6 +101,7 @@ sudo apt-get install -y \
 ```
 
 #### Dependencias de Python
+
 ```bash
 # Instalar dependencias del proyecto
 pip install -r requirements.txt
@@ -209,6 +221,7 @@ aws ecs update-service \
 ### Modelo de Datos
 
 #### Jerarquía de Usuarios
+
 ```
 Usuario (role: "cliente" | "admin")
     └── Grupo (opcional, según plan contratado)
@@ -332,6 +345,7 @@ Usuario (role: "cliente" | "admin")
 ### Estructura de Almacenamiento en S3
 
 #### Estructura Actual
+
 ```
 bucket: satisfacture/
 ├── clientes/
@@ -352,6 +366,7 @@ bucket: satisfacture/
 ```
 
 #### Estructura Futura (Roadmap)
+
 ```
 bucket: satisfacture/
 ├── clientes/
@@ -388,8 +403,8 @@ bucket: satisfacture/
 │   └── services/
 │       ├── sat_service.py              # Lógica de integración con Web Services del SAT
 │       ├── s3_service.py               # Operaciones con Amazon S3
-│       └── mongo_service.py            # Operaciones con MongoDB
-│       └── download_sat_packages.py    # Descarga los paquetes del SAT
+│       ├── mongo_service.py            # Operaciones con MongoDB
+│       ├── download_sat_packages.py    # Descarga los paquetes del SAT
 │       └── cfdi_processing_service.py  # Procesa los zip devueltos por el SAT
 ├── Dockerfile                          # Configuración de contenedor Docker
 ├── requirements.txt                    # Dependencias de Python
@@ -429,7 +444,8 @@ bucket: satisfacture/
    - XMLs → Colección cfdi
    - TXTs → Colección metadata
    ↓
-8. Usuario puede consultar datos procesados instantáneamente de CFDI, para metadata el tiempo de espera son 6 dias.
+8. Usuario puede consultar datos procesados instantáneamente de CFDI
+   Para metadata el tiempo de espera son 6 días
 ```
 
 ### Flujo Manual (Actual - Desarrollo)
@@ -439,7 +455,7 @@ bucket: satisfacture/
 3. **Solicitar descarga:** `POST /solicitar-cfdi/`
 4. **Verificar estado:** `POST /verificar-solicitudes/` (verificar si estado = 3)
 5. **Descargar paquetes:** `POST /descargar-paquetes/`
-6. **Analizar un año:** `POST /ejecutar-solicitudes-iniciales/` (Solicitudes de n, n-1 y n + 1(3meses))
+6. **Analizar un año:** `POST /ejecutar-solicitudes-iniciales/` (Solicitudes de n, n-1 y n+1 primeros 3 meses)
 7. **Procesar archivos:** `POST /procesar-cfdi/`
 
 ### Estrategia de Descarga según Tamaño
@@ -456,7 +472,8 @@ El tamaño de empresa se determina al momento del registro del contribuyente bas
 
 ### Alcance Temporal de Descarga
 
-Cuando se ejecuta /ejecutar-solicitudes-iniciales/ se hace un análisis de un año fiscal, el sistema descarga:
+Cuando se ejecuta `/ejecutar-solicitudes-iniciales/` para analizar un año fiscal, el sistema descarga:
+
 - **Año anterior completo** (ej. 2023 si se analiza 2024)
 - **Año solicitado completo** (ej. 2024)
 - **Primeros 3 meses del año siguiente** (ej. ene-mar 2025)
@@ -468,7 +485,8 @@ Esto permite análisis de comparación anual y captura de facturas con fecha de 
 ### Autenticación
 
 #### `POST /auth-sat/`
-Autentica usuario ante el SAT y devuelve JWT token.
+
+Autentica usuario ante el SAT y devuelve token.
 
 **Form Data:**
 - `rfc`: RFC del contribuyente
@@ -483,6 +501,7 @@ Autentica usuario ante el SAT y devuelve JWT token.
 ### Gestión de FIEL
 
 #### `POST /convert-and-upload-certificates/`
+
 Sube certificados FIEL del contribuyente a S3.
 
 **Form Data:**
@@ -506,17 +525,17 @@ Sube certificados FIEL del contribuyente a S3.
 ### Solicitudes SAT
 
 #### `POST /solicitar-cfdi/`
+
 Crea una solicitud de descarga masiva en el SAT.
 
-**Request Body:**
 **Form Data:**
-- "rfc": "RFC123456789",
-- "inicio": "2024-01-01",          # Fecha inicio
-- "fin": "2024-01-31",             # Fecha fin
-- "tipo_solicitud": "CFDI",        # "CFDI" | "Metadata"
-- "tipo_comprobante": "E",         # "E" (Emitidos) | "R" (Recibidos)
-- "tipo_cfdi": null,               # null = ALL, o "I","E","P","N","T"
-- "estado_cfdi": "ALL"             # "ALL" | "Vigente" | "Cancelado"
+- `rfc`: "RFC123456789"
+- `inicio`: "2024-01-01" (Fecha inicio)
+- `fin`: "2024-01-31" (Fecha fin)
+- `tipo_solicitud`: "CFDI" ("CFDI" | "Metadata")
+- `tipo_comprobante`: "E" ("E" Emitidos | "R" Recibidos)
+- `tipo_cfdi`: null (null = ALL, o "I","E","P","N","T")
+- `estado_cfdi`: "ALL" ("ALL" | "Vigente" | "Cancelado")
 
 **Response:**
 ```json
@@ -535,21 +554,21 @@ Crea una solicitud de descarga masiva en el SAT.
 - `5005`: Ya existe una solicitud con los mismos criterios
 
 #### `POST /verificar-solicitudes/`
+
 Verifica el estado de una solicitud previamente realizada.
 
 **Form Data:**
-- "rfc": "RFC123456789"
-- "id_solicitud": "Año"
+- `rfc`: "RFC123456789"
+- `year`: "2024" (Año)
 
-// Response de estado 1:
-**Response:**
+**Response (Estado 1 - Aceptada):**
 ```json
 {
   "message": "Verificacion completada",
   "resultados": [
     {
       "id_solicitud": "96cc1ecb-4e8b-4016-b55c-1e26c7cc1a69",
-      "estado": "1",                                             // Ver tabla de estados
+      "estado": "1",
       "codigo_estados": "5000",
       "numero_cfdis": "0",
       "paquetes": []
@@ -558,29 +577,32 @@ Verifica el estado de una solicitud previamente realizada.
 }
 ```
 
-// Response de estado 1:
-**Response:**
+**Response (Estado 3 - Terminada):**
 ```json
 {
   "message": "Verificacion completada",
   "resultados": [
     {
       "id_solicitud": "96cc1ecb-4e8b-4016-b55c-1e26c7cc1a69",
-      "estado": "3",                                             // Ver tabla de estados
+      "estado": "3",
       "codigo_estados": "5000",
       "numero_cfdis": "23",
-      "paquetes": []
+      "paquetes": [
+        "96CC1ECB-4E8B-4016-B55C-1E26C7CC1A69_01",
+        "96CC1ECB-4E8B-4016-B55C-1E26C7CC1A69_02"
+      ]
     }
   ]
 }
 ```
 
 #### `POST /descargar-paquetes/`
+
 Descarga los paquetes de una solicitud completada (estado = 3).
 
 **Form Data:**
-- "rfc": "RFC123456789"
-- "id_solicitud": "Año"
+- `rfc`: "RFC123456789"
+- `year`: "2024" (Año)
 
 **Response:**
 ```json
@@ -596,8 +618,9 @@ Descarga los paquetes de una solicitud completada (estado = 3).
 El SAT puede devolver paquetes con archivos XML extremadamente grandes (>10MB) que exceden los límites por defecto de los parsers XML. El sistema implementa una estrategia dual:
 
 **Estrategia de Parsing:**
+
 ```python
-# 1. Intento con parser robusto (Se implementò, no hubo)
+# 1. Intento con parser robusto (Implementado)
 parser = etree.XMLParser(
     huge_tree=True,      # Permite nodos de texto >10MB
     recover=True,        # Intenta recuperarse de errores
@@ -615,10 +638,10 @@ if parser_fails:
 
 ### 2. Firma Digital con FIEL
 
-Todas las peticiones SOAP al SAT deben estar firmadas digitalmente con el certificado FIEL (e.firma) del contribuyente:
-
+Todas las peticiones SOAP al SAT deben estar firmadas digitalmente con el certificado FIEL (e.firma) del contribuyente.
 
 **Conversión de certificados:**
+
 ```bash
 # De .cer/.key (formato DER) a .pem
 openssl x509 -inform DER -in certificado.cer -out cert.pem
@@ -627,7 +650,7 @@ openssl pkcs8 -inform DER -in llave.key -out fiel.pem
 
 ### 3. Gestión de Tokens SAT
 
-Los tokens de autenticación del SAT tienen validez limitada (típicamente 10 minutos). El sistema implementara:
+Los tokens de autenticación del SAT tienen validez limitada (típicamente 10 minutos). El sistema implementará:
 
 - Almacena tokens en S3 para compartir entre instancias ECS
 - Verifica validez antes de cada operación
@@ -646,7 +669,7 @@ Para evitar el límite de 10MB por paquete del SAT, el sistema ajusta la granula
 
 ### 5. Procesamiento Asíncrono
 
-Las descargas del SAT pueden tardar varios minutos (especialmente metadata, hasta 6 días). El sistema implementa implementara:
+Las descargas del SAT pueden tardar varios minutos (especialmente metadata, hasta 6 días). El sistema implementará:
 
 - Verificación periódica de estados (polling)
 - Procesamiento en background para no bloquear la API
@@ -655,29 +678,34 @@ Las descargas del SAT pueden tardar varios minutos (especialmente metadata, hast
 ### 6. Almacenamiento Distribuido
 
 **Por qué S3 en lugar de sistema de archivos local:**
-- Persistencia: Los contenedores ECS son efímeros
-- Compartición: Múltiples instancias acceden a los mismos certificados
-- Escalabilidad: No depende del almacenamiento del contenedor
-- Backup: S3 maneja versionado y durabilidad automáticamente
+
+- **Persistencia:** Los contenedores ECS son efímeros
+- **Compartición:** Múltiples instancias acceden a los mismos certificados
+- **Escalabilidad:** No depende del almacenamiento del contenedor
+- **Backup:** S3 maneja versionado y durabilidad automáticamente
 
 **Por qué MongoDB:**
-- Flexibilidad: Estructura XML se mapea naturalmente a documentos JSON
-- Velocidad de consulta: Índices eficientes para búsquedas por RFC, fecha, UUID
-- Análisis: Agregaciones para reportes y estadísticas
+
+- **Flexibilidad:** Estructura XML se mapea naturalmente a documentos JSON
+- **Velocidad de consulta:** Índices eficientes para búsquedas por RFC, fecha, UUID
+- **Análisis:** Agregaciones para reportes y estadísticas
 
 ### 7. Manejo de Límites del SAT
 
 **Límite de solicitudes duplicadas:**
+
 - El SAT solo permite **2 solicitudes** con los mismos criterios exactos
 - A la tercera solicitud con mismos parámetros: rechazo permanente con los mismos criterios
-- Solución: El sistema almacena TODAS las facturas en la primera descarga y hace queries locales
+- **Solución:** El sistema almacena TODAS las facturas en la primera descarga y hace queries locales
 
 **Límite de descarga de paquetes:**
+
 - Cada paquete solo se puede descargar **2 veces**
 - Después de 7 días sin descarga: el paquete expira (estado 6)
-- Solución: Descarga y almacenamiento inmediato en S3
+- **Solución:** Descarga y almacenamiento inmediato en S3
 
 **Límite de vigencia de solicitudes:**
+
 - Estado 1 (Aceptada) → Estado 2 (En proceso) → Estado 3 (Terminada): típicamente 1-30 minutos para CFDI desde la solicitud
 - Estado 1 → Estado 3: hasta 6 días para Metadata
 - Si permanece en estado 1 por >7 días → Estado 6 (Caducada)
@@ -685,17 +713,19 @@ Las descargas del SAT pueden tardar varios minutos (especialmente metadata, hast
 ### 8. Seguridad
 
 **Implementado:**
-- Contraseñas hasheadas con bcrypt para el login de la demos en streamlit
-- Autenticación JWT para endpoints de API
-- HTTPS en tránsito (ECS Load Balancer)
-- Validación de términos y condiciones (`consent_registered`)
+
+- ✅ Contraseñas hasheadas con bcrypt para el login de las demos en streamlit
+- ✅ Autenticación JWT para endpoints de API
+- ✅ HTTPS en tránsito (ECS Load Balancer)
+- ✅ Validación de términos y condiciones (`consent_registered`)
 
 **Roadmap de seguridad:**
-- Encriptación de FIELs en S3 con AWS KMS
-- Rotación automática de tokens JWT
-- Rate limiting por usuario/IP
-- Audit logs de acceso a FIELs
-- 2FA para usuarios
+
+- 🔲 Encriptación de FIELs en S3 con AWS KMS
+- 🔲 Rotación automática de tokens JWT
+- 🔲 Rate limiting por usuario/IP
+- 🔲 Audit logs de acceso a FIELs
+- 🔲 2FA para usuarios
 
 ### 9. Ventaja Competitiva: Velocidad
 
@@ -718,9 +748,9 @@ Las descargas del SAT pueden tardar varios minutos (especialmente metadata, hast
 | Ambiente | Descripción | Infraestructura | URL |
 |----------|-------------|-----------------|-----|
 | **Local** | Desarrollo y pruebas | Localhost | http://localhost:8000 |
-| **Producción** | Sistema en vivo para usuarios | AWS ECS + Load Balancer | http://sat-api-alb-532045601.us-east-1.elb.amazonaws.com* |
+| **Producción** | Sistema en vivo para usuarios | AWS ECS + Load Balancer | http://sat-api-alb-532045601.us-east-1.elb.amazonaws.com |
 
-*URL usada en produccion funcional, agregar los andpoints /auth-sat/ desde postman para probar, de tal manera que quede:http://sat-api-alb-532045601.us-east-1.elb.amazonaws.com/auth-sat/.
+**Nota sobre URL de producción:** URL funcional. Agregar los endpoints desde Postman para probar, por ejemplo: `http://sat-api-alb-532045601.us-east-1.elb.amazonaws.com/auth-sat/`
 
 **Nota:** No existe un ambiente de staging separado. Todas las pruebas se realizan localmente antes del deployment a producción.
 
@@ -729,6 +759,7 @@ Las descargas del SAT pueden tardar varios minutos (especialmente metadata, hast
 El sistema de integración SAT corre en **AWS ECS (Elastic Container Service)**. Un sistema separado de procesamiento de XMLs manuales corre en **EC2**.
 
 **Proceso de deployment:**
+
 ```bash
 # 1. Pruebas locales
 uvicorn app.main:app --reload
@@ -754,33 +785,40 @@ aws ecs describe-services --cluster sat-api --service sat-api-service
 ### Estado Actual
 
 **Demo en Streamlit (Interna):**
-- Propósito: Pruebas internas y validación de flujo UX
-- Usuarios: Solo equipo de desarrollo
-- Funcionalidad: Simulación del flujo completo de solicitud-descarga-procesamiento
+
+- **Propósito:** Pruebas internas y validación de flujo UX
+- **Usuarios:** Solo equipo de desarrollo
+- **Funcionalidad:** Simulación del flujo completo de solicitud-descarga-procesamiento
 
 **Frontend EC2 (Procesamiento Manual):**
+
 - Sistema separado para subir XMLs sin FIEL
 - No conectado al módulo SAT (ECS)
 - En producción para usuarios
 
 ### Roadmap Frontend
 
-**Frontend Web Completo** (Planeado)
-- Framework: Por definir (React/Next.js probable)
-- Funcionalidades (para servicio del SAT):
-  - Dashboard de análisis de precios de transferencia
-  - Gestión de FIELs y certificados
-  - Visualización de CFDI descargados
-  - Selector de RFCs para análisis
-  - Reportes y exportación
-  - Chat bot de ayuda integrado
-  - IA para insights
-- Funcionalidades (para gestion de contratos):
-  - Alta de contratos (arrendamiento, financiamiento)
-  - Calculo de Valor Presente, Amortizacion y Depreciacion
-  - Editor de contratos
-  - Aplicador de tasa para contratos
-  - Dashboards Interactivos
+**Frontend Web Completo (Planeado):**
+
+- **Framework:** Por definir (React/Next.js probable)
+
+**Funcionalidades para servicio del SAT:**
+
+- Dashboard de análisis de precios de transferencia
+- Gestión de FIELs y certificados
+- Visualización de CFDI descargados
+- Selector de RFCs para análisis
+- Reportes y exportación
+- Chat bot de ayuda integrado
+- IA para insights
+
+**Funcionalidades para gestión de contratos:**
+
+- Alta de contratos (arrendamiento, financiamiento)
+- Cálculo de Valor Presente, Amortización y Depreciación
+- Editor de contratos
+- Aplicador de tasa para contratos
+- Dashboards interactivos
 
 ## Estrategia de Análisis de Transacciones
 
@@ -789,6 +827,7 @@ aws ecs describe-services --cluster sat-api --service sat-api-service
 Cuando un usuario quiere generar un análisis de precios de transferencia, puede seleccionar:
 
 **Opción 1: RFCs del Grupo (Default)**
+
 ```
 Usuario: Cesar (REM150313D57)
 Grupo: REMYT
@@ -800,12 +839,15 @@ Grupo: REMYT
 ```
 
 **Opción 2: RFCs Personalizados**
+
 El usuario puede:
-- Quitar RFCs del grupo
-- Agregar RFCs externos con los que tuvo transacciones
-- Guardar configuraciones de análisis
+
+- ✅ Quitar RFCs del grupo
+- ✅ Agregar RFCs externos con los que tuvo transacciones
+- ✅ Guardar configuraciones de análisis
 
 **Criterios de análisis:**
+
 ```json
 {
   "analisis_id": "...",
@@ -829,61 +871,72 @@ El sistema consulta la base de datos local (no al SAT) para análisis instantán
 
 ### Límites del SAT
 
-1. **Solicitudes Duplicadas**
-   - Máximo **2 solicitudes** con los mismos criterios exactos
-   - Tercera solicitud con mismos parámetros: **rechazo permanente**
-   - Aplica por: RFC + Fechas + Tipo + Comprobante + Estado
+#### 1. Solicitudes Duplicadas
 
-2. **Descargas de Paquetes**
-   - Cada paquete se puede descargar **máximo 2 veces**
-   - Después: el paquete ya no está disponible
+- Máximo **2 solicitudes** con los mismos criterios exactos
+- Tercera solicitud con mismos parámetros: **rechazo permanente**
+- Aplica por: RFC + Fechas + Tipo + Comprobante + Estado
 
-3. **Expiración de Paquetes**
-   - Paquetes listos (estado 3) expiran en **72 horas** si no se descargan
-   - Después de 7 días en estado 1: solicitud pasa a estado 6 (Caducada)
+#### 2. Descargas de Paquetes
 
-4. **Tiempos de Procesamiento**
-   - CFDI: 1-60 minutos (típicamente <5 minutos)
-   - Metadata: 1-6 días (típicamente 2-3 días)
+- Cada paquete se puede descargar **máximo 2 veces**
+- Después: el paquete ya no está disponible
 
-5. **Tamaño de Paquetes**
-   - Límite aproximado: **10MB por paquete**
-   - El SAT divide automáticamente en múltiples paquetes si excede
+#### 3. Expiración de Paquetes
+
+- Paquetes listos (estado 3) expiran en **72 horas** si no se descargan
+- Después de 7 días en estado 1: solicitud pasa a estado 6 (Caducada)
+
+#### 4. Tiempos de Procesamiento
+
+- **CFDI:** 1-60 minutos (típicamente <5 minutos)
+- **Metadata:** 1-6 días (típicamente 2-3 días)
+
+#### 5. Tamaño de Paquetes
+
+- Límite aproximado: **10MB por paquete**
+- El SAT divide automáticamente en múltiples paquetes si excede
 
 ### Límites del Sistema
 
-1. **Almacenamiento**
-   - Sin límite hard-coded actualmente
-   - Dependiente de cuota de S3 y MongoDB Atlas
+#### 1. Almacenamiento
 
-2. **Tasa de Requests**
-   - Sin rate limiting implementado actualmente
-   - Roadmap: Implementar rate limiting por usuario
+- Sin límite hard-coded actualmente
+- Dependiente de cuota de S3 y MongoDB Atlas
 
-3. **Retención de Datos**
-   - Con política de retención
-   - Roadmap: Definir política de retención y archivado
+#### 2. Tasa de Requests
+
+- Sin rate limiting implementado actualmente
+- 🔲 **Roadmap:** Implementar rate limiting por usuario
+
+#### 3. Retención de Datos
+
+- Con política de retención
+- 🔲 **Roadmap:** Definir política de retención y archivado
 
 ## Notas Importantes
 
 ### 1. Manejo de Certificados FIEL
 
-**CRÍTICO - SEGURIDAD:**
+⚠️ **CRÍTICO - SEGURIDAD:**
 
 Los certificados FIEL son **equivalentes a una firma autógrafa** y permiten realizar trámites fiscales oficiales en nombre del contribuyente.
 
 **Mejores prácticas actuales:**
-- Almacenados en S3 (no en código fuente)
-- Usuario debe aceptar términos y condiciones
-- Acceso restringido via IAM roles
+
+- ✅ Almacenados en S3 (no en código fuente)
+- ✅ Usuario debe aceptar términos y condiciones
+- ✅ Acceso restringido via IAM roles
 
 **Mejoras de seguridad planeadas:**
-- Encriptación con AWS KMS
-- Logs de auditoría de acceso
-- Opción de usar FIEL solo temporalmente (no almacenar)
-- 2FA obligatorio para subir FIEL
+
+- 🔲 Encriptación con AWS KMS
+- 🔲 Logs de auditoría de acceso
+- 🔲 Opción de usar FIEL solo temporalmente (no almacenar)
+- 🔲 2FA obligatorio para subir FIEL
 
 **Responsabilidad del usuario:**
+
 ```
 Al subir su FIEL a SATisFacture, el usuario acepta que:
 1. El certificado será usado ÚNICAMENTE para descargar facturas del SAT
@@ -893,6 +946,7 @@ Al subir su FIEL a SATisFacture, el usuario acepta que:
 ```
 
 **Conversión de formatos:**
+
 ```bash
 # Convertir certificado (.cer → .pem)
 openssl x509 -inform DER -in certificado.cer -out cert.pem
@@ -914,12 +968,14 @@ openssl pkcs8 -inform DER -in llave.key -out fiel.pem
 ### 3. Metadata vs CFDI
 
 **CFDI (XML completo):**
+
 - Contiene TODOS los detalles del comprobante
 - Tamaño: 5-50 KB por archivo
 - Se usa para: Análisis detallado, contabilidad, auditorías
 - Frecuencia de descarga: Mensual/semanal/diaria
 
 **Metadata (archivo TXT):**
+
 - Contiene solo campos clave del comprobante
 - Tamaño: <1 KB por registro
 - Se usa para: Verificar cancelaciones, sustituciones, validez
@@ -931,7 +987,7 @@ openssl pkcs8 -inform DER -in llave.key -out fiel.pem
 ### 4. Diferencia con Otras Soluciones
 
 | Característica | SATisFacture | Competencia |
-|----------------|--------------|--------------------------|
+|----------------|--------------|-------------|
 | **Almacenamiento** | Local (BD propia) | Re-solicita al SAT cada vez |
 | **Velocidad de análisis** | Segundos (query local) | Minutos/días (solicitud SAT) |
 | **Límites de consulta** | Ilimitadas | 2 por criterio (SAT) |
@@ -966,16 +1022,16 @@ Para precios de transferencia, los más relevantes son **Ingreso (I)** y **Egres
 
 Los logs de la aplicación en AWS ECS están disponibles en CloudWatch Logs.
 
-
 ### Métricas Importantes
 
 **Monitorear:**
-- Errores de parsing XML: "Text node too long"
-- Errores de autenticación: "Token expirado"
-- Errores del SAT: Códigos 5001, 5002, 5005
-- Timeouts en descarga de paquetes (>5 minutos)
-- Errores de conexión a MongoDB
-- Errores de conexión a S3
+
+- ⚠️ Errores de parsing XML: "Text node too long"
+- ⚠️ Errores de autenticación: "Token expirado"
+- ⚠️ Errores del SAT: Códigos 5001, 5002, 5005
+- ⚠️ Timeouts en descarga de paquetes (>5 minutos)
+- ⚠️ Errores de conexión a MongoDB
+- ⚠️ Errores de conexión a S3
 
 ## Troubleshooting
 
@@ -985,18 +1041,20 @@ Los logs de la aplicación en AWS ECS están disponibles en CloudWatch Logs.
 
 **Causa:** Paquete SAT con XML >10MB que excede límites del parser.
 
+**Solución:** Ya implementada con parser robusto y fallback a regex.
 
 #### 2. Error: "Token expirado" / "401 Unauthorized"
 
 **Causa:** El token SAT tiene validez limitada (~10 minutos).
 
-**Solución:** Reautenticar (actualmente manual)
+**Solución:** Reautenticar (actualmente manual con `/auth-sat/`)
 
 #### 3. Error: "5002 - Límite de solicitudes alcanzado"
 
 **Causa:** Ya se hicieron 2 solicitudes con los mismos criterios exactos.
 
 **Solución:**
+
 - Cambiar ligeramente los criterios (ej. ajustar fecha_fin en 1 segundo)
 - O consultar la base de datos local en lugar de hacer nueva solicitud al SAT
 
@@ -1010,6 +1068,7 @@ Los logs de la aplicación en AWS ECS están disponibles en CloudWatch Logs.
 
 **Causa:** MongoDB Atlas puede estar inaccesible o IP no whitelisted.
 
+**Solución:** Verificar conectividad y configuración de whitelist en MongoDB Atlas.
 
 ### Scripts de Diagnóstico
 
@@ -1022,7 +1081,7 @@ from pymongo import MongoClient
 import boto3
 
 # 1. Verificar API
-response = requests.get("https://api.satisfacture.com/health")
+response = requests.get("http://sat-api-alb-532045601.us-east-1.elb.amazonaws.com/health")
 print(f"API Status: {response.status_code}")
 
 # 2. Verificar MongoDB
@@ -1037,20 +1096,28 @@ response = s3.list_objects_v2(Bucket='satisfacture', Prefix='clientes/', MaxKeys
 print(f"S3 accesible: {'Contents' in response}")
 ```
 
-#### Limpiar solicitudes caducadas (aun no implementado)
+#### Limpiar solicitudes caducadas
 
-## Performance y Optimización (aun no implementado)
+🔲 **Aún no implementado**
 
-### Optimizaciones de Consulta (aun no implementado)
+## Performance y Optimización
 
-### Caché (Roadmap - aun no implementado)
+🔲 **Aún no implementado** - Ver sección de Roadmap
+
+### Optimizaciones de Consulta
+
+🔲 **Aún no implementado**
+
+### Caché
+
+🔲 **Roadmap** - Implementación futura con Redis
 
 ## Soporte y Referencias
 
 ### Documentación Oficial del SAT
 
 - **Portal del SAT - Factura Electrónica:** [https://www.sat.gob.mx/aplicacion/operacion/31274/consulta-y-recuperacion-de-comprobantes](https://www.sat.gob.mx/aplicacion/operacion/31274/consulta-y-recuperacion-de-comprobantes)
-- **Documentación Web:** Ver carpeta `/documentacion/actualizacion` de este proyecto para obterner los mas recientes
+- **Documentación Web Services:** Ver carpeta `/documentacion/actualizacion` de este proyecto para obtener las más recientes
   - `0_URLs_WS_Descarga_Masiva_V1_5_VF.pdf`
   - `1_WS_Solicitud_Descarga_Masiva_V1_5_VF.pdf`
   - `2_WS_Verificacion_de_Descarga_Masiva_V1_5_VF.pdf`
@@ -1067,57 +1134,75 @@ print(f"S3 accesible: {'Contents' in response}")
 ### Preguntas Frecuentes
 
 **P: ¿Por qué necesito subir mi FIEL?**
+
 R: La FIEL es requerida por el SAT para autenticar que eres el contribuyente legítimo y tienes derecho a descargar tus comprobantes fiscales. Sin ella, no es posible acceder a los Web Services del SAT.
 
 **P: ¿Es seguro subir mi FIEL?**
+
 R: Actualmente las FIELs se almacenan en S3 sin encriptación adicional. Estamos trabajando en implementar encriptación con AWS KMS. Si tienes preocupaciones de seguridad, puedes optar por subir tus XMLs manualmente sin proporcionar la FIEL.
 
 **P: ¿Puedo usar mi FIEL para múltiples RFCs?**
+
 R: No. Cada RFC requiere su propia FIEL única. Si administras múltiples contribuyentes, necesitarás la FIEL de cada uno.
 
 **P: ¿Qué pasa si mi FIEL expira?**
+
 R: Necesitarás renovarla con el SAT y subir la nueva versión a la plataforma. Las descargas existentes seguirán disponibles, pero no podrás hacer nuevas solicitudes con la FIEL expirada.
 
 **P: ¿Por qué tarda tanto la descarga de Metadata?**
+
 R: El SAT procesa solicitudes de Metadata de forma diferente a CFDI. Mientras que los CFDI están listos en minutos, la Metadata puede tardar de 1 a 6 días porque el SAT valida el estatus de cada comprobante.
 
 **P: ¿Puedo descargar facturas de años anteriores a 2023?**
+
 R: Sí, el SAT permite descargar facturas desde 2014 (cuando comenzó el CFDI 3.3). Solo ajusta las fechas en tu solicitud.
 
 **P: ¿Qué pasa si el SAT rechaza mi solicitud?**
+
 R: Verifica los códigos de error:
 - `5001`: RFC no autorizado (verifica tu FIEL)
 - `5002`: Límite alcanzado (ya hiciste 2 solicitudes idénticas)
 - `5005`: Solicitud duplicada (espera a que termine la anterior)
 
 **P: ¿Puedo exportar mis datos?**
-R: Sí, todos los XMLs están en MongoDB y pueden exportarse. Estamos trabajando en una funcionalidad de exportación masiva en el frontend.
 
+R: Sí, todos los XMLs están en MongoDB y pueden exportarse. Estamos trabajando en una funcionalidad de exportación masiva en el frontend.
 
 ## Equipo y Contacto
 
 ### Desarrollador Principal
+
 - **Nombre:** César
 - **Rol:** Data Engineer
 - **Responsabilidades:** Backend SAT, infraestructura AWS, arquitectura
 
 ### Stack Técnico del Desarrollador
-- Backend: Python, FastAPI, MongoDB
-- Cloud: AWS (ECS, ECR, S3, CloudWatch)
-- DevOps: Docker, Git
-- Especializaciones: Integración SAT, procesamiento XML, análisis fiscal
+
+- **Backend:** Python, FastAPI, MongoDB
+- **Cloud:** AWS (ECS, ECR, S3, CloudWatch)
+- **DevOps:** Docker, Git
+- **Especializaciones:** Integración SAT, procesamiento XML, análisis fiscal
 
 ### Contacto
+
 - **Email:** apps@basterisreyes.com
 
 ## Roadmap General
+
+### Completado ✅
 
 - [x] Integración Web Services SAT v1.5
 - [x] Procesamiento de CFDI y Metadata
 - [x] Almacenamiento en MongoDB + S3
 - [x] Deployment en AWS ECS
+
+### En Desarrollo 🔄
+
 - [ ] Automatización completa de descarga
 - [ ] Frontend web profesional
+
+### Planeado 🔲
+
 - [ ] Sistema de notificaciones
 - [ ] Chat bot de ayuda
 - [ ] Encriptación de FIELs con KMS
@@ -1135,22 +1220,25 @@ R: Sí, todos los XMLs están en MongoDB y pueden exportarse. Estamos trabajando
 ### [Versión Actual] - En Desarrollo
 
 **Añadido:**
-- Integración completa con Web Services SAT
-- Descarga de CFDI y Metadata
-- Procesamiento automático de XMLs
-- Almacenamiento en MongoDB
-- Manejo robusto de XMLs >10MB
-- Firma digital con FIEL
+
+- ✅ Integración completa con Web Services SAT v1.5
+- ✅ Descarga de CFDI y Metadata
+- ✅ Procesamiento automático de XMLs
+- ✅ Almacenamiento en MongoDB
+- ✅ Manejo robusto de XMLs >10MB
+- ✅ Firma digital con FIEL
 
 **En Progreso:**
-- Reestructuracion
-- Automatización de flujo completo
-- Frontend web
+
+- 🔄 Reestructuración
+- 🔄 Automatización de flujo completo
+- 🔄 Frontend web
 
 **Conocido:**
-- FIELs no están encriptadas en S3
-- No hay pruebas unitarias
-- No hay rate limiting
+
+- ⚠️ FIELs no están encriptadas en S3
+- ⚠️ No hay pruebas unitarias
+- ⚠️ No hay rate limiting
 
 ---
 
@@ -1172,3 +1260,5 @@ R: Sí, todos los XMLs están en MongoDB y pueden exportarse. Estamos trabajando
 
 Este sistema ha sido inspirado y desarrollado con base en la implementación de referencia:  
 https://github.com/lunasoft/sw-descargamasiva-dotnet
+
+*Última actualización: Noviembre 2024*
