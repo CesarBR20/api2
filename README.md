@@ -842,9 +842,9 @@ Grupo: REMYT
 
 El usuario puede:
 
-- ✅ Quitar RFCs del grupo
-- ✅ Agregar RFCs externos con los que tuvo transacciones
-- ✅ Guardar configuraciones de análisis
+- Quitar RFCs del grupo
+- Agregar RFCs externos con los que tuvo transacciones
+- Guardar configuraciones de análisis
 
 **Criterios de análisis:**
 
@@ -907,33 +907,33 @@ El sistema consulta la base de datos local (no al SAT) para análisis instantán
 #### 2. Tasa de Requests
 
 - Sin rate limiting implementado actualmente
-- 🔲 **Roadmap:** Implementar rate limiting por usuario
+- **Roadmap:** Implementar rate limiting por usuario
 
 #### 3. Retención de Datos
 
 - Con política de retención
-- 🔲 **Roadmap:** Definir política de retención y archivado
+- **Roadmap:** Definir política de retención y archivado
 
 ## Notas Importantes
 
 ### 1. Manejo de Certificados FIEL
 
-⚠️ **CRÍTICO - SEGURIDAD:**
+**CRÍTICO - SEGURIDAD:**
 
 Los certificados FIEL son **equivalentes a una firma autógrafa** y permiten realizar trámites fiscales oficiales en nombre del contribuyente.
 
 **Mejores prácticas actuales:**
 
-- ✅ Almacenados en S3 (no en código fuente)
-- ✅ Usuario debe aceptar términos y condiciones
-- ✅ Acceso restringido via IAM roles
+- Almacenados en S3 (no en código fuente)
+- Usuario debe aceptar términos y condiciones
+- Acceso restringido via IAM roles
 
 **Mejoras de seguridad planeadas:**
 
-- 🔲 Encriptación con AWS KMS
-- 🔲 Logs de auditoría de acceso
-- 🔲 Opción de usar FIEL solo temporalmente (no almacenar)
-- 🔲 2FA obligatorio para subir FIEL
+- Encriptación con AWS KMS
+- Logs de auditoría de acceso
+- Opción de usar FIEL solo temporalmente (no almacenar)
+- 2FA obligatorio para subir FIEL
 
 **Responsabilidad del usuario:**
 
@@ -1026,12 +1026,12 @@ Los logs de la aplicación en AWS ECS están disponibles en CloudWatch Logs.
 
 **Monitorear:**
 
-- ⚠️ Errores de parsing XML: "Text node too long"
-- ⚠️ Errores de autenticación: "Token expirado"
-- ⚠️ Errores del SAT: Códigos 5001, 5002, 5005
-- ⚠️ Timeouts en descarga de paquetes (>5 minutos)
-- ⚠️ Errores de conexión a MongoDB
-- ⚠️ Errores de conexión a S3
+- Errores de parsing XML: "Text node too long"
+- Errores de autenticación: "Token expirado"
+- Errores del SAT: Códigos 5001, 5002, 5005
+- Timeouts en descarga de paquetes (>5 minutos)
+- Errores de conexión a MongoDB
+- Errores de conexión a S3
 
 ## Troubleshooting
 
@@ -1098,19 +1098,19 @@ print(f"S3 accesible: {'Contents' in response}")
 
 #### Limpiar solicitudes caducadas
 
-🔲 **Aún no implementado**
+**Aún no implementado**
 
 ## Performance y Optimización
 
-🔲 **Aún no implementado** - Ver sección de Roadmap
+**Aún no implementado** - Ver sección de Roadmap
 
 ### Optimizaciones de Consulta
 
-🔲 **Aún no implementado**
+**Aún no implementado**
 
 ### Caché
 
-🔲 **Roadmap** - Implementación futura con Redis
+**Roadmap** - Implementación futura con Redis
 
 ## Soporte y Referencias
 
@@ -1189,19 +1189,19 @@ R: Sí, todos los XMLs están en MongoDB y pueden exportarse. Estamos trabajando
 
 ## Roadmap General
 
-### Completado ✅
+### Completado
 
 - [x] Integración Web Services SAT v1.5
 - [x] Procesamiento de CFDI y Metadata
 - [x] Almacenamiento en MongoDB + S3
 - [x] Deployment en AWS ECS
 
-### En Desarrollo 🔄
+### En Desarrollo
 
 - [ ] Automatización completa de descarga
 - [ ] Frontend web profesional
 
-### Planeado 🔲
+### Planeado
 
 - [ ] Sistema de notificaciones
 - [ ] Chat bot de ayuda
@@ -1221,24 +1221,24 @@ R: Sí, todos los XMLs están en MongoDB y pueden exportarse. Estamos trabajando
 
 **Añadido:**
 
-- ✅ Integración completa con Web Services SAT v1.5
-- ✅ Descarga de CFDI y Metadata
-- ✅ Procesamiento automático de XMLs
-- ✅ Almacenamiento en MongoDB
-- ✅ Manejo robusto de XMLs >10MB
-- ✅ Firma digital con FIEL
+- Integración completa con Web Services SAT v1.5
+- Descarga de CFDI y Metadata
+- Procesamiento automático de XMLs
+- Almacenamiento en MongoDB
+- Manejo robusto de XMLs >10MB
+- Firma digital con FIEL
 
 **En Progreso:**
 
-- 🔄 Reestructuración
-- 🔄 Automatización de flujo completo
-- 🔄 Frontend web
+- Reestructuración
+- Automatización de flujo completo
+- Frontend web
 
 **Conocido:**
 
-- ⚠️ FIELs no están encriptadas en S3
-- ⚠️ No hay pruebas unitarias
-- ⚠️ No hay rate limiting
+- FIELs no están encriptadas en S3
+- No hay pruebas unitarias
+- No hay rate limiting
 
 ---
 
@@ -1261,4 +1261,4 @@ R: Sí, todos los XMLs están en MongoDB y pueden exportarse. Estamos trabajando
 Este sistema ha sido inspirado y desarrollado con base en la implementación de referencia:  
 https://github.com/lunasoft/sw-descargamasiva-dotnet
 
-*Última actualización: Noviembre 2024*
+*Última actualización: Noviembre 2025*
