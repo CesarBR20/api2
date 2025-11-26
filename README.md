@@ -112,12 +112,6 @@ AWS_SECRET_ACCESS_KEY=tu_secret_key
 AWS_DEFAULT_REGION=us-east-1
 S3_BUCKET=satisfacture
 
-# URLs del SAT (Ambiente de Producción)
-SAT_AUTH_URL=https://url-autenticacion.sat.gob.mx
-SAT_REQUEST_URL=https://url-solicitud.sat.gob.mx
-SAT_VERIFY_URL=https://url-verificacion.sat.gob.mx
-SAT_DOWNLOAD_URL=https://url-descarga.sat.gob.mx
-
 # Configuración de la API
 API_HOST=0.0.0.0
 API_PORT=8000
