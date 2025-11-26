@@ -349,6 +349,7 @@ bucket: satisfacture/
 │           │   └── id_solicitud.txt
 │           └── paquetes/
 │               └── cfdi/        # ZIPs de CFDI y metadata descargados
+```
 
 #### Estructura Futura (Roadmap)
 ```
